@@ -6,6 +6,9 @@
 #include <math.h>
 #include "moves.h"
 #include <gsl/gsl_histogram.h>
+#include "ViennaRNA/data_structures.h"
+#include "ViennaRNA/model.h"
+#include "ViennaRNA/fold.h"
 #include "ViennaRNA/fold_vars.h"
 #include "ViennaRNA/eval.h"
 #include "ViennaRNA/utils.h"
@@ -34,34 +37,40 @@ options move_opt;
 static void parse_infile(FILE *fp);
 int get_list(struct_en*, struct_en*);
 int construct_moves_new(const char*, const short*, int , move_str **);
-void random_move_pt(short int*);
+move_str random_move_pt(short int*);
+void fold_subopt_VRNA2(const char*, const char*);
 inline int try_insert_seq(const char*, int, int);
 inline int compat(const char, const char);
 void mtw_dump_pt(const short*);
+void ini_RNA(const char*);
 gsl_histogram *ini_histogram(const int n,const double min,const double max);
 
 struct_en *list = NULL;
 int list_length = 0;
 gsl_histogram *h = NULL;
+model_detailsT md;
+paramT *P = NULL;
+vrna_fold_compound *vc = NULL;
 
 int main() {
-  int i,j,count,e,ept;
-  short int *pt = NULL;
-  short int *ptbak = NULL;
-  short int *s0 = NULL;
-  short int *s1 = NULL;
-  //move_str *mvs = NULL;
-  // //char seq[22] = "CCAGUUCCUCACAGGCACAC";
-  ////char str[22] = "...(..(((...)))..)..";
+  int e,ept;
+  float mfe;
+  short int *pt,*s0,*s1;
+  move_str m;
+  double eta = 1;
+  
   move_opt.INFILE = stdin;
   parse_infile(move_opt.INFILE);
-  ////  char *seq = NULL;
-  char *str = NULL;
-
+  ini_RNA(move_opt.sequence);
+  fold_subopt_VRNA2(move_opt.sequence,move_opt.structure);
+  mfe = vrna_fold(vc,NULL);
+  destroy_fold_compound(vc);
+  printf ("mfe = %6.2f\n",mfe);
+  
   {
-    int hmin=-30.;
+    int hmin=mfe+eta;
     int hmax=50.;
-    h = ini_histogram(100,hmin,hmax);
+    // h = ini_histogram(100,hmin,hmax);
   }
   srand(time(NULL));
   
@@ -70,18 +79,17 @@ int main() {
   s1 = encode_sequence(move_opt.sequence,1);
   		 
   //mtw_dump_pt(pt);
-  {
-    e = energy_of_structure(move_opt.sequence,move_opt.structure,0);
-    ept = energy_of_structure_pt(move_opt.sequence,pt,s0,s1,0);
-    
-  }
   //str = vrna_pt_to_db(pt);
-  //printf ("structure:\n%s (e=%i) (ept=%i)\n",str,e,ept);
+  e = vrna_eval_structure_pt(move_opt.sequence,pt,P);
   printf("%s\n", move_opt.sequence);
-  print_str(stdout,pt);printf("\n");
-  //print_stren(stdout,pt);
+  print_str(stdout,pt);printf(" %6.2f\n",(float)e/100);
 
-  random_move_pt(pt);
+  m = random_move_pt(pt);
+  //mtw_dump_pt(pt);
+  //ept = vrna_eval_move_pt(pt,s0,s1,m.left,m.right,P);
+  //print_str(stdout,pt);printf(" %6.2f\n",(float)ept/100);
+  e = vrna_eval_structure_pt(move_opt.sequence,pt,P);
+  print_str(stdout,pt);printf(" %6.2f\n",(float)e/100);
   
   gsl_histogram_free(h);
   free(list);
@@ -93,11 +101,15 @@ int main() {
   return 0;
 }
 
-void
+/*
+  perform a random move on a pair table
+  returns pt of target structure
+ */
+move_str
 random_move_pt(short int *pt)
 {
-  int i,k,count;
-  move_str *mvs=NULL;
+  int k,count;
+  move_str r,*mvs=NULL;
   k=0;
   count = construct_moves_new((const char *)move_opt.sequence,pt,1,&mvs);
   //for (i = 0; i<count; i++) {  
@@ -113,8 +125,26 @@ random_move_pt(short int *pt)
     pt[mvs[k].left] = mvs[k].right;
     pt[mvs[k].right] = mvs[k].left;
   }
-  print_str(stdout,pt);printf("\n");
-  free(mvs);  
+  //print_str(stdout,pt);printf("\n");
+  r.left  = mvs[k].left;
+  r.right = mvs[k].right;
+  free(mvs);
+  return r;
+}
+
+void
+ini_RNA (const char *seq)
+{
+  set_model_details(&md); /* use current global model */
+  P = vrna_get_energy_contributions(md);
+  vc = vrna_get_fold_compound(seq, &md,VRNA_OPTION_MFE);
+}
+
+void
+fold_subopt_VRNA2(const char *sequence,
+		  const char *structure)
+{
+  float mfe;
 }
 
 /**/
