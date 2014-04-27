@@ -7,6 +7,7 @@
 #include "moves.h"
 #include <gsl/gsl_histogram.h>
 #include "ViennaRNA/fold_vars.h"
+#include "ViennaRNA/eval.h"
 #include "ViennaRNA/utils.h"
 #include "ViennaRNA/params.h"
 #include <ViennaRNA/structure_utils.h>
@@ -24,6 +25,7 @@ typedef struct _options {
   FILE *INFILE;
   char *sequence;
   char *structure;
+  int len;
 } options;
 
 options move_opt;
@@ -32,6 +34,7 @@ options move_opt;
 static void parse_infile(FILE *fp);
 int get_list(struct_en*, struct_en*);
 int construct_moves_new(const char*, const short*, int , move_str **);
+void random_move_pt(short int*);
 inline int try_insert_seq(const char*, int, int);
 inline int compat(const char, const char);
 void mtw_dump_pt(const short*);
@@ -42,14 +45,17 @@ int list_length = 0;
 gsl_histogram *h = NULL;
 
 int main() {
-  int i,count;
-  short *pt = NULL;
-  move_str *mvs = NULL;
-  //char seq[22] = "CCAGUUCCUCACAGGCACAC";
-  //char str[22] = "...(..(((...)))..)..";
+  int i,j,count,e,ept;
+  short int *pt = NULL;
+  short int *ptbak = NULL;
+  short int *s0 = NULL;
+  short int *s1 = NULL;
+  //move_str *mvs = NULL;
+  // //char seq[22] = "CCAGUUCCUCACAGGCACAC";
+  ////char str[22] = "...(..(((...)))..)..";
   move_opt.INFILE = stdin;
   parse_infile(move_opt.INFILE);
-  //  char *seq = NULL;
+  ////  char *seq = NULL;
   char *str = NULL;
 
   {
@@ -60,38 +66,56 @@ int main() {
   srand(time(NULL));
   
   pt = vrna_pt_get(move_opt.structure);
-  mtw_dump_pt(pt);
-  str = vrna_pt_to_db(pt);
-  printf ("structure:\n%s\n",str);
-  printf("---------------\n");
-  print_str(stdout,pt);printf("\n");
-  
-  count = construct_moves_new((const char *)move_opt.sequence,pt,1,&mvs);
-  for (i = 0; i<count; i++) {  
-    printf("%d %d\n", mvs[i].left, mvs[i].right);
-  }
-
+  s0 = encode_sequence(move_opt.sequence,0);
+  s1 = encode_sequence(move_opt.sequence,1);
+  		 
+  //mtw_dump_pt(pt);
   {
-    if(mvs[0].left < 0){
-      printf ("++ trying mvs.left %i mvs.right %i\n",mvs[0].left,mvs[0].right);
-      pt[(int)(fabs(mvs[0].left))] = 0;
-      pt[(int)(fabs(mvs[0].right))] = 0;
-    }
-    else {
-      pt[mvs[0].left] = mvs[0].right;
-      pt[mvs[0].right] = mvs[0].left;
-    }
+    e = energy_of_structure(move_opt.sequence,move_opt.structure,0);
+    ept = energy_of_structure_pt(move_opt.sequence,pt,s0,s1,0);
+    
   }
-  mtw_dump_pt(pt);
+  //str = vrna_pt_to_db(pt);
+  //printf ("structure:\n%s (e=%i) (ept=%i)\n",str,e,ept);
+  printf("%s\n", move_opt.sequence);
   print_str(stdout,pt);printf("\n");
-  //print_stren(stdout, move_opt.sequence);
+  //print_stren(stdout,pt);
+
+  random_move_pt(pt);
+  
   gsl_histogram_free(h);
   free(list);
-  free(mvs);
   free(pt);
+  free(s0);
+  free(s1);
+  free(move_opt.sequence);
+  free(move_opt.structure);
   return 0;
 }
 
+void
+random_move_pt(short int *pt)
+{
+  int i,k,count;
+  move_str *mvs=NULL;
+  k=0;
+  count = construct_moves_new((const char *)move_opt.sequence,pt,1,&mvs);
+  //for (i = 0; i<count; i++) {  
+  //  printf("%d %d\n", mvs[i].left, mvs[i].right);
+  //}
+  //printf ("++ applying move #%i: left %i right %i\n",k,mvs[k].left,mvs[k].right);
+  
+  if(mvs[k].left < 0){
+    pt[(int)(fabs(mvs[k].left))] = 0;
+    pt[(int)(fabs(mvs[k].right))] = 0;
+  }
+  else {
+    pt[mvs[k].left] = mvs[k].right;
+    pt[mvs[k].right] = mvs[k].left;
+  }
+  print_str(stdout,pt);printf("\n");
+  free(mvs);  
+}
 
 /**/
 static void
@@ -113,10 +137,15 @@ parse_infile(FILE *fp)
   line = get_line(fp);
   sscanf(line, "%s", move_opt.structure);
   free (line);
+  move_opt.len = strlen(move_opt.sequence);
 
 }
 
-int construct_moves_new(const char *seq, const short *structure, int permute, move_str **array)
+int
+construct_moves_new(const char *seq,
+		    const short *structure,
+		    int permute,
+		    move_str **array)
 {
   /* generate all possible moves (less than n^2)*/
   int i;
@@ -178,14 +207,20 @@ int construct_moves_new(const char *seq, const short *structure, int permute, mo
 }
 
 /*  try insert base pair (i,j) */
-inline int try_insert_seq(const char *seq, int i, int j)
+inline int
+try_insert_seq(const char *seq,
+	       int i,
+	       int j)
 {
   if (i<=0 || j<=0) return 0;
   return (j-i>MINGAP && compat(seq[i-1], seq[j-1]));
 }
 
 /* compatible base pair?*/
-inline int compat(const char a, const char b) {
+inline int
+compat(const char a,
+       const char b)
+{
   if (a=='A' && b=='U') return 1;
   if (a=='C' && b=='G') return 1;
   if (a=='G' && b=='U') return 1;
@@ -201,14 +236,15 @@ inline int compat(const char a, const char b) {
 }
 
 
-void mtw_dump_pt(const short *pairtable){
+void
+mtw_dump_pt(const short *pairtable)
+{
   int i;
-  printf("+++ dump_pt +++\n");
+  printf("> ");
   for (i=0;i<*pairtable;i++){
     printf("%i ",*(pairtable+i));
   }
   printf("\n");
-  printf("+++++++++++++++\n");
 }
 
 gsl_histogram *ini_histogram(const int n,const double min,const double max) {
