@@ -16,6 +16,7 @@
 #include <ViennaRNA/structure_utils.h>
 #include <ViennaRNA/move_set.h>
 #include <ViennaRNA/pair_mat.h>
+#include <ViennaRNA/subopt.h>
 
 #define MINGAP 3
 
@@ -38,7 +39,7 @@ static void parse_infile(FILE *fp);
 int get_list(struct_en*, struct_en*);
 int construct_moves_new(const char*, const short*, int , move_str **);
 move_str random_move_pt(short int*);
-void fold_subopt_VRNA2(const char*, const char*);
+void subopt_first_bin(double);
 inline int try_insert_seq(const char*, int, int);
 inline int compat(const char, const char);
 void mtw_dump_pt(const short*);
@@ -57,22 +58,36 @@ int main() {
   float mfe;
   short int *pt,*s0,*s1;
   move_str m;
-  double eta = 1;
+  double erange;
   
   move_opt.INFILE = stdin;
   parse_infile(move_opt.INFILE);
   ini_RNA(move_opt.sequence);
-  fold_subopt_VRNA2(move_opt.sequence,move_opt.structure);
-  mfe = vrna_fold(vc,NULL);
-  destroy_fold_compound(vc);
-  printf ("mfe = %6.2f\n",mfe);
-  
   {
-    int hmin=mfe+eta;
-    int hmax=50.;
-    // h = ini_histogram(100,hmin,hmax);
+    mfe = vrna_fold(vc,NULL);
+    destroy_fold_compound(vc);
+    printf ("mfe = %6.2f\n",mfe);
   }
-  srand(time(NULL));
+  {
+    double lo,hi, hmin=floor(mfe);
+    int hmax=5*fabs(mfe);
+    h = ini_histogram(20,(int)hmin,hmax);
+    gsl_histogram_set_ranges_uniform(h,hmin,hmax);
+  
+    //gsl_histogram_increment(h,mfe);
+    gsl_histogram_fprintf(stderr,h,"%6.2g","%6g");
+    gsl_histogram_get_range(h,0,&lo,&hi);
+    erange=mfe-hi+0.01;
+    printf("bin 1: %g -- %g; running subopt -e %g\n",lo,hi,erange);
+  }
+  {
+    subopt_first_bin(erange);
+    gsl_histogram_fprintf(stderr,h,"%6.2g","%6g");
+  }
+  
+
+
+  
   
   pt = vrna_pt_get(move_opt.structure);
   s0 = encode_sequence(move_opt.sequence,0);
@@ -141,10 +156,19 @@ ini_RNA (const char *seq)
 }
 
 void
-fold_subopt_VRNA2(const char *sequence,
-		  const char *structure)
+subopt_first_bin(double e)
 {
-  float mfe;
+  int strucs;
+  SOLUTION *sol=NULL;
+  printf("in subopt_first_bin: e=%g\n",e);
+  sol = subopt(move_opt.sequence, NULL, e*100, NULL);
+  for (strucs = 0; sol[strucs].structure != NULL; strucs++){
+    printf("%s %6.2f\n",sol[strucs].structure,sol[strucs].energy);
+    gsl_histogram_increment(h,sol[strucs].energy);
+    // TODO: so_structs[bin] += 1; ueber eigenes s histogram
+    free(sol[strucs].structure);
+  }
+  free(sol);
 }
 
 /**/
