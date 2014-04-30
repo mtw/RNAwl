@@ -15,7 +15,6 @@
 #include "ViennaRNA/params.h"
 #include <ViennaRNA/structure_utils.h>
 #include <ViennaRNA/move_set.h>
-#include <ViennaRNA/pair_mat.h>
 #include <ViennaRNA/subopt.h>
 
 #define MINGAP 3
@@ -38,7 +37,8 @@ options move_opt;
 static void parse_infile(FILE *fp);
 int get_list(struct_en*, struct_en*);
 int construct_moves_new(const char*, const short*, int , move_str **);
-move_str random_move_pt(short int*);
+move_str get_random_move_pt(const short int*);
+void apply_move_pt(short int *,const move_str);
 void subopt_first_bin(double);
 inline int try_insert_seq(const char*, int, int);
 inline int compat(const char, const char);
@@ -54,7 +54,7 @@ paramT *P = NULL;
 vrna_fold_compound *vc = NULL;
 
 int main() {
-  int e,ept;
+  int e,enew,emove;
   float mfe;
   short int *pt,*s0,*s1;
   move_str m;
@@ -63,11 +63,15 @@ int main() {
   move_opt.INFILE = stdin;
   parse_infile(move_opt.INFILE);
   ini_RNA(move_opt.sequence);
+  srand(time(NULL));
+  
   {
     mfe = vrna_fold(vc,NULL);
     destroy_fold_compound(vc);
     printf ("mfe = %6.2f\n",mfe);
   }
+
+ 
   {
     double lo,hi, hmin=floor(mfe);
     int hmax=5*fabs(mfe);
@@ -77,7 +81,7 @@ int main() {
     //gsl_histogram_increment(h,mfe);
     gsl_histogram_fprintf(stderr,h,"%6.2g","%6g");
     gsl_histogram_get_range(h,0,&lo,&hi);
-    erange=mfe-hi+0.01;
+    erange=fabs(mfe-hi+0.01);
     printf("bin 1: %g -- %g; running subopt -e %g\n",lo,hi,erange);
   }
   {
@@ -85,26 +89,26 @@ int main() {
     gsl_histogram_fprintf(stderr,h,"%6.2g","%6g");
   }
   
-
-
-  
-  
   pt = vrna_pt_get(move_opt.structure);
-  s0 = encode_sequence(move_opt.sequence,0);
-  s1 = encode_sequence(move_opt.sequence,1);
+  s0 = get_sequence_encoding(move_opt.sequence,0,&(P->model_details));
+  s1 = get_sequence_encoding(move_opt.sequence,1,&(P->model_details));
   		 
   //mtw_dump_pt(pt);
-  //str = vrna_pt_to_db(pt);
+  //char *str = vrna_pt_to_db(pt);
+  //printf(">%s<\n",str);
   e = vrna_eval_structure_pt(move_opt.sequence,pt,P);
   printf("%s\n", move_opt.sequence);
   print_str(stdout,pt);printf(" %6.2f\n",(float)e/100);
 
-  m = random_move_pt(pt);
+  m = get_random_move_pt(pt);
+  emove = vrna_eval_move_pt(pt,s0,s1,m.left,m.right,P);
+  apply_move_pt(pt,m);
   //mtw_dump_pt(pt);
-  //ept = vrna_eval_move_pt(pt,s0,s1,m.left,m.right,P);
-  //print_str(stdout,pt);printf(" %6.2f\n",(float)ept/100);
-  e = vrna_eval_structure_pt(move_opt.sequence,pt,P);
-  print_str(stdout,pt);printf(" %6.2f\n",(float)e/100);
+  enew = e + emove;
+  //printf ("performed move l:%4d r:%4d\t Energy +/- %6.2f\n",m.left,m.right,(float)emove/100);
+  print_str(stdout,pt);printf(" %6.2f\n",(float)enew/100);
+  //e = vrna_eval_structure_pt(move_opt.sequence,pt,P);
+  //print_str(stdout,pt);printf(" %6.2f\n",(float)e/100);
   
   gsl_histogram_free(h);
   free(list);
@@ -117,34 +121,45 @@ int main() {
 }
 
 /*
-  perform a random move on a pair table
-  returns pt of target structure
+  compute a random move on a pair table
+  returns move operations to be applied to pt in order to perform the move
  */
 move_str
-random_move_pt(short int *pt)
+get_random_move_pt(const short int *pt)
 {
-  int k,count;
   move_str r,*mvs=NULL;
-  k=0;
-  count = construct_moves_new((const char *)move_opt.sequence,pt,1,&mvs);
-  //for (i = 0; i<count; i++) {  
-  //  printf("%d %d\n", mvs[i].left, mvs[i].right);
-  //}
-  //printf ("++ applying move #%i: left %i right %i\n",k,mvs[k].left,mvs[k].right);
   
-  if(mvs[k].left < 0){
-    pt[(int)(fabs(mvs[k].left))] = 0;
-    pt[(int)(fabs(mvs[k].right))] = 0;
-  }
-  else {
-    pt[mvs[k].left] = mvs[k].right;
-    pt[mvs[k].right] = mvs[k].left;
-  }
-  //print_str(stdout,pt);printf("\n");
-  r.left  = mvs[k].left;
-  r.right = mvs[k].right;
+  int count = construct_moves_new((const char *)move_opt.sequence,pt,1,&mvs);
+
+  /*
+    for (i = 0; i<count; i++) {  
+    printf("%d %d\n", mvs[i].left, mvs[i].right);
+    }
+    printf ("++ applying move #%i: left %i right %i\n",i,mvs[i].left,mvs[i].right);
+  */
+  
+  r.left  = mvs[0].left;
+  r.right = mvs[0].right;
   free(mvs);
   return r;
+}
+
+/*
+  apply move operation on a pair table
+*/
+void
+apply_move_pt(short int *pt,
+	      move_str m)
+{
+  if(m.left < 0){
+    pt[(int)(fabs(m.left))] = 0;
+    pt[(int)(fabs(m.right))] = 0;
+  }
+  else {
+    pt[m.left] = m.right;
+    pt[m.right] = m.left;
+  }
+  //print_str(stdout,pt);printf("\n");
 }
 
 void
