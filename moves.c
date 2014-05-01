@@ -65,14 +65,12 @@ int main() {
   ini_RNA(move_opt.sequence);
   srand(time(NULL));
   
-  {
+  { // compute mfe
     mfe = vrna_fold(vc,NULL);
     destroy_fold_compound(vc);
     printf ("mfe = %6.2f\n",mfe);
   }
-
- 
-  {
+  { // alloc and initalize histogram
     double lo,hi, hmin=floor(mfe);
     int hmax=5*fabs(mfe);
     h = ini_histogram(20,(int)hmin,hmax);
@@ -80,11 +78,12 @@ int main() {
   
     //gsl_histogram_increment(h,mfe);
     gsl_histogram_fprintf(stderr,h,"%6.2g","%6g");
+   
+  }
+  { // populate lowest bin with true DOS from subopt
     gsl_histogram_get_range(h,0,&lo,&hi);
     erange=fabs(mfe-hi+0.01);
     printf("bin 1: %g -- %g; running subopt -e %g\n",lo,hi,erange);
-  }
-  {
     subopt_first_bin(erange);
     gsl_histogram_fprintf(stderr,h,"%6.2g","%6g");
   }
