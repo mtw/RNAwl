@@ -40,7 +40,7 @@ int construct_moves_new(const char*, const short*, int , move_str **);
 move_str get_random_move_pt(const short int*);
 void apply_move_pt(short int *,const move_str);
 void subopt_first_bin(double);
-inline int try_insert_seq(const char*, int, int);
+inline int try_insert_seq2(const char*, int, int);
 inline int compat(const char, const char);
 void mtw_dump_pt(const short*);
 void ini_RNA(const char*);
@@ -79,8 +79,8 @@ int main() {
     //gsl_histogram_increment(h,mfe);
     gsl_histogram_fprintf(stderr,h,"%6.2g","%6g");
    
-  }
-  { // populate lowest bin with true DOS from subopt
+  
+   // populate lowest bin with true DOS from subopt
     gsl_histogram_get_range(h,0,&lo,&hi);
     erange=fabs(mfe-hi+0.01);
     printf("bin 1: %g -- %g; running subopt -e %g\n",lo,hi,erange);
@@ -238,7 +238,7 @@ construct_moves_new(const char *seq,
       for (j=i+1; j<=structure[0]; j++) {
         /* fprintf(stderr, "check (%d, %d)\n", i, j); */
         if (structure[j]==0) {
-          if (try_insert_seq(seq,i,j)) {
+          if (try_insert_seq2(seq,i,j)) {
             count ++;
 	    // need to reallocate the array?
 	    if (count>size) {
@@ -276,7 +276,7 @@ construct_moves_new(const char *seq,
 
 /*  try insert base pair (i,j) */
 inline int
-try_insert_seq(const char *seq,
+try_insert_seq2(const char *seq,
 	       int i,
 	       int j)
 {
