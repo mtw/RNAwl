@@ -7,15 +7,14 @@
 #include <assert.h>
 #include <string.h>
 #include <unistd.h>
-//#include "options.h"
+#include "config.h"
+#include "wl_options.h"
 #include "globals.h"
 #include "wl_rna.h"
 
+static void subopt_first_bin_RNA(float);
 
-/* ViennaRNA-related */
-paramT *P;
-short int *pt,*s0,*s1;
-
+/* ==== */
 void
 initialize_RNA (const char *seq)
 {
@@ -33,20 +32,28 @@ initialize_RNA (const char *seq)
   printf ("[[initialize_RNA]]: mfe = %6.2f\n",mfe);
 }
 
+/* ==== */
 void
 pre_process_RNA(void)
 {
-  subopt_first_bin_RNA(wanglandau_opt.erange);
-  
+  subopt_first_bin_RNA(wanglandau_opt.erange); 
 }
 
+/* ==== */
 void
+post_process_RNA(void)
+{
+  return;
+}
+
+/* ==== */
+static void
 subopt_first_bin_RNA(float e)
 {
   int strucs;
   SOLUTION *sol=NULL;
   printf("[[subopt_first_bin]]: e=%g\n",e);
-  sol = subopt(move_opt.sequence, NULL, e*100, NULL);
+  sol = subopt(wanglandau_opt.sequence, NULL, e*100, NULL);
   for (strucs = 0; sol[strucs].structure != NULL; strucs++){
     printf("%s %6.2f\n",sol[strucs].structure,sol[strucs].energy);
     gsl_histogram_increment(h,sol[strucs].energy);

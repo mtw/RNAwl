@@ -1,7 +1,7 @@
 
 /*
   wanglandau.c : main computation routines for Wang-Landau sampling
-  Last changed Time-stamp: <2014-05-05 10:47:27 mtw>
+  Last changed Time-stamp: <2014-05-10 00:20:04 mtw>
 
   Literature:
   Landau, PD and Tsai, S-H and Exler, M (2004) Am. J. Phys. 72:(10) 1294-1302
@@ -16,18 +16,19 @@
 #include <math.h>
 #include <time.h>
 #include <assert.h>
-//#include "config.h"
 #include "globals.h"
 #include "wl_options.h"
 #include "wl_rna.h"
+#include "moves.h"
 
 /* functions */
 static void initialize_wl(void);
 static gsl_histogram *ini_histogram(const int,const double,const double);
 static void wl_montecarlo(const char*, char *);
 
-/* variables / arrays */
-gsl_histogram *h = NULL;
+/* variables */
+static int iterations=0;   /* # of iterations (modifications with f) */
+static long int steps=0;   /* # of WL steps */
 
 
 /* ==== */
@@ -40,6 +41,8 @@ wanglandau(void)
 			  populating the first bin */
   gsl_histogram_fprintf(stderr,h,"%6.2g","%6g");
   wl_montecarlo(wanglandau_opt.sequence, wanglandau_opt.structure);
+  post_process_model();
+  return;
 }
 
 /* ==== */
@@ -88,8 +91,9 @@ static void
 wl_montecarlo(const char *seq, char *struc)
 {
   short *pt=NULL;
-  int e,enew,emove;
+  int e,enew,emove,verbose;
   move_str m;
+  verbose = 0;
   
   pt = vrna_pt_get(struc);
   //mtw_dump_pt(pt);
@@ -99,7 +103,7 @@ wl_montecarlo(const char *seq, char *struc)
   printf("%s\n", wanglandau_opt.sequence);
   print_str(stdout,pt);printf(" %6.2f\n",(float)e/100);
 
-  m = get_random_move_pt(pt);
+  m = get_random_move_pt(seq,pt,verbose);
   emove = vrna_eval_move_pt(pt,s0,s1,m.left,m.right,P);
   apply_move_pt(pt,m);
   //mtw_dump_pt(pt);
@@ -108,6 +112,14 @@ wl_montecarlo(const char *seq, char *struc)
   print_str(stdout,pt);printf(" %6.2f\n",(float)enew/100);
   //e = vrna_eval_structure_pt(move_opt.sequence,pt,P);
   //print_str(stdout,pt);printf(" %6.2f\n",(float)e/100);
+}
+
+void
+sighandler (int signum)
+{
+  fprintf(stderr, "steps=%12li\n", steps);
+    fflush(stderr);
+  signal(SIGUSR1, sighandler);
 }
 
 void

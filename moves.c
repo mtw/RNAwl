@@ -11,9 +11,6 @@
   
 //int get_list(struct_en*, struct_en*);
 static int construct_moves_new(const char*, const short*, int , move_str **);
-move_str get_random_move_pt(const char *,const short int*,int);
-void apply_move_pt(short int *,const move_str);
-
 inline int try_insert_seq2(const char*, int, int);
 inline int compat(const char, const char);
 void mtw_dump_pt(const short*);
