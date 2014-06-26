@@ -1,0 +1,13 @@
+purpose "Estimate the Density of States by a Wang-Landau MC simulation"
+args "--file-name=wl_cmdline --unamed-opts"
+section "General options"
+option "mod" f "Final value of Wang-Landau modification factor" double optional
+option "flat" l "Flatness criterion for the histogram" float optional
+option "info" - "Show settings" flag off
+option "steps" s "Number of Wang-Landau steps before histogram is checked for flatness" int optional
+option "Temp" T "Temperatur in Celsius" float no
+option "verbose" v  "Verbose output" flag off
+section "RNA-specific options"
+option "norm" n "Set number of bins used for normalization" int optional
+
+
