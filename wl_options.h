@@ -1,4 +1,4 @@
-/* Last changed Time-stamp: <2014-06-26 17:10:11 mtw> */
+/* Last changed Time-stamp: <2014-06-26 23:33:14 mtw> */
 
 #ifndef WL_OPTIONS_H
 #define WL_OPTIONS_H
@@ -14,10 +14,12 @@ typedef struct _options {
   int bins;            /* # of equidistant bins in histogram */
   double ffinal;       /* modification parameter f */
   float flat;          /* flatness criterion */
-  int steps;           /* wl steps before histogram is checked for flatness */
+  long int steps;      /* wl steps before histogram is checked for flatness */
   float T;             /* fold temperature */
   float erange;        /* energy range for subopt */
   int norm;            /* # of normalization-bins */
+  double emax;         /* upper energy bound for sampling */
+  int emax_given;      /* whether emax was given at the command line */
   int verbose;         /* be verbose */
 } options;
 

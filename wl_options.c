@@ -1,6 +1,6 @@
 /*
   wl_options.c Command-line parsing for Wang-Landau sampling
-  Last changed Time-stamp: <2014-06-26 17:23:38 mtw>
+  Last changed Time-stamp: <2014-06-26 23:31:52 mtw>
 */
 
 #include <stdio.h>
@@ -59,6 +59,8 @@ ini_globals(void)
   wanglandau_opt.erange  = -1;
   wanglandau_opt.norm    = 1;
   wanglandau_opt.verbose = 0;
+  wanglandau_opt.emax    = 99999999999999.;
+  wanglandau_opt.emax_given = 0;
 }
 
 /* ==== */
@@ -81,6 +83,7 @@ set_parameters(void)
   }
 
   if (args_info.steps_given){
+    printf (stderr, "--steps given with value\n",args_info.steps_arg);
     if( (wanglandau_opt.steps = args_info.steps_arg) <= 0 ){
       fprintf(stderr, "Value of --steps must be > 0\n");
       exit (EXIT_FAILURE);
@@ -94,7 +97,17 @@ set_parameters(void)
     }
   }
 
+  if(args_info.emax_given){
+    wanglandau_opt.emax = args_info.emax_arg;
+    wanglandau_opt.emax_given = 1;
+  }
   
+  if (args_info.verbose_given)   wanglandau_opt.verbose = 1;
+  
+  if (args_info.info_given){
+    display_settings();
+    exit(EXIT_SUCCESS);
+  }
   
 }
 
@@ -104,11 +117,18 @@ display_settings(void)
 {
   fprintf(stderr, "Settings:\n");
   fprintf(stderr,
+	  "-f        = %g\n"
+	  "--flat    = %g\n"
 	  "--bins    = %d\n"
+	  "--steps   = %d\n"
+	  "--emax    = %g\n"
 	  "--Temp    = %4.2f\n",
+	  wanglandau_opt.ffinal,
+	  wanglandau_opt.flat,
 	  wanglandau_opt.bins,
-	  wanglandau_opt.T
-	  );
+	  wanglandau_opt.steps,
+	  wanglandau_opt.emax,
+	  wanglandau_opt.T);
 }
 
 
