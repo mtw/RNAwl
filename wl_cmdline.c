@@ -35,6 +35,7 @@ const char *gengetopt_args_info_help[] = {
   "  -h, --help        Print help and exit",
   "  -V, --version     Print version and exit",
   "\nGeneral options:",
+  "  -b, --bins=INT    Number of (equidistant) histogram bins",
   "  -f, --mod=DOUBLE  Final value of Wang-Landau modification factor",
   "  -l, --flat=FLOAT  Flatness criterion for the histogram",
   "      --info        Show settings  (default=off)",
@@ -71,6 +72,7 @@ void clear_given (struct gengetopt_args_info *args_info)
 {
   args_info->help_given = 0 ;
   args_info->version_given = 0 ;
+  args_info->bins_given = 0 ;
   args_info->mod_given = 0 ;
   args_info->flat_given = 0 ;
   args_info->info_given = 0 ;
@@ -84,6 +86,7 @@ static
 void clear_args (struct gengetopt_args_info *args_info)
 {
   FIX_UNUSED (args_info);
+  args_info->bins_orig = NULL;
   args_info->mod_orig = NULL;
   args_info->flat_orig = NULL;
   args_info->info_flag = 0;
@@ -101,13 +104,14 @@ void init_args_info(struct gengetopt_args_info *args_info)
 
   args_info->help_help = gengetopt_args_info_help[0] ;
   args_info->version_help = gengetopt_args_info_help[1] ;
-  args_info->mod_help = gengetopt_args_info_help[3] ;
-  args_info->flat_help = gengetopt_args_info_help[4] ;
-  args_info->info_help = gengetopt_args_info_help[5] ;
-  args_info->steps_help = gengetopt_args_info_help[6] ;
-  args_info->Temp_help = gengetopt_args_info_help[7] ;
-  args_info->verbose_help = gengetopt_args_info_help[8] ;
-  args_info->norm_help = gengetopt_args_info_help[10] ;
+  args_info->bins_help = gengetopt_args_info_help[3] ;
+  args_info->mod_help = gengetopt_args_info_help[4] ;
+  args_info->flat_help = gengetopt_args_info_help[5] ;
+  args_info->info_help = gengetopt_args_info_help[6] ;
+  args_info->steps_help = gengetopt_args_info_help[7] ;
+  args_info->Temp_help = gengetopt_args_info_help[8] ;
+  args_info->verbose_help = gengetopt_args_info_help[9] ;
+  args_info->norm_help = gengetopt_args_info_help[11] ;
   
 }
 
@@ -191,6 +195,7 @@ static void
 cmdline_parser_release (struct gengetopt_args_info *args_info)
 {
   unsigned int i;
+  free_string_field (&(args_info->bins_orig));
   free_string_field (&(args_info->mod_orig));
   free_string_field (&(args_info->flat_orig));
   free_string_field (&(args_info->steps_orig));
@@ -235,6 +240,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "help", 0, 0 );
   if (args_info->version_given)
     write_into_file(outfile, "version", 0, 0 );
+  if (args_info->bins_given)
+    write_into_file(outfile, "bins", args_info->bins_orig, 0);
   if (args_info->mod_given)
     write_into_file(outfile, "mod", args_info->mod_orig, 0);
   if (args_info->flat_given)
@@ -504,6 +511,7 @@ cmdline_parser_internal (
       static struct option long_options[] = {
         { "help",	0, NULL, 'h' },
         { "version",	0, NULL, 'V' },
+        { "bins",	1, NULL, 'b' },
         { "mod",	1, NULL, 'f' },
         { "flat",	1, NULL, 'l' },
         { "info",	0, NULL, 0 },
@@ -514,7 +522,7 @@ cmdline_parser_internal (
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVf:l:s:T:vn:", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVb:f:l:s:T:vn:", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -530,6 +538,18 @@ cmdline_parser_internal (
           cmdline_parser_free (&local_args_info);
           exit (EXIT_SUCCESS);
 
+        case 'b':	/* Number of (equidistant) histogram bins.  */
+        
+        
+          if (update_arg( (void *)&(args_info->bins_arg), 
+               &(args_info->bins_orig), &(args_info->bins_given),
+              &(local_args_info.bins_given), optarg, 0, 0, ARG_INT,
+              check_ambiguity, override, 0, 0,
+              "bins", 'b',
+              additional_error))
+            goto failure;
+        
+          break;
         case 'f':	/* Final value of Wang-Landau modification factor.  */
         
         

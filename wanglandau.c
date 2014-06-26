@@ -1,7 +1,6 @@
-
 /*
   wanglandau.c : main computation routines for Wang-Landau sampling
-  Last changed Time-stamp: <2014-05-10 00:20:04 mtw>
+  Last changed Time-stamp: <2014-06-26 15:49:07 mtw>
 
   Literature:
   Landau, PD and Tsai, S-H and Exler, M (2004) Am. J. Phys. 72:(10) 1294-1302
@@ -39,7 +38,8 @@ wanglandau(void)
 			  allocate histograms */
   pre_process_model(); /* get normalization factor for histogram by
 			  populating the first bin */
-  gsl_histogram_fprintf(stderr,h,"%6.2g","%6g");
+  printf("[[wanlandau()]]\n");
+  gsl_histogram_fprintf(stderr,h,"%6.3g","%6g");
   wl_montecarlo(wanglandau_opt.sequence, wanglandau_opt.structure);
   post_process_model();
   return;
@@ -49,30 +49,28 @@ wanglandau(void)
 static void
 initialize_wl(void)
 {
-  double lo,hi, hmin,erange;
-  int hmax=5*fabs(mfe);
+  double lo,hi, hmin, hmax,erange;
   srand(time(NULL));
-
+  printf("[[initialize_wl()]]\n");
   /* assign function pointers */
   initialize_model = initialize_RNA;  /* for RNA */
   pre_process_model  = pre_process_RNA;
   post_process_model = post_process_RNA;
 
   initialize_model(wanglandau_opt.sequence); /* set energy paramters for
-					  current model; get mfe */
-
+						current model; get mfe */
   hmin=floor(mfe);
+  hmax=5*fabs(mfe);
+  //printf ("-> mfe is %4.2f | hmin is %4.2f | hmax is %4.2f <-\n", mfe,hmin,hmax);
   h = ini_histogram(wanglandau_opt.bins,(int)hmin,hmax);
   gsl_histogram_set_ranges_uniform(h,hmin,hmax);
-  
-  //gsl_histogram_increment(h,mfe);
-  //gsl_histogram_fprintf(stderr,h,"%6.2g","%6g");
-
+   
   // populate lowest bin with true DOS from subopt
   gsl_histogram_get_range(h,0,&lo,&hi);
   wanglandau_opt.erange=(float)fabs(mfe-hi+0.01);
-  printf("bin 1: %g -- %g\n",lo,hi);
-   
+ 
+  printf("bin 1: %6.3g -- %6.3g wl_opt.erange=%6.3f\n",lo,hi,wanglandau_opt.erange);
+  //gsl_histogram_fprintf(stderr,h,"%6.3g","%6g");
 }
 
 /* ==== */

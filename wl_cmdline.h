@@ -43,6 +43,9 @@ struct gengetopt_args_info
 {
   const char *help_help; /**< @brief Print help and exit help description.  */
   const char *version_help; /**< @brief Print version and exit help description.  */
+  int bins_arg;	/**< @brief Number of (equidistant) histogram bins.  */
+  char * bins_orig;	/**< @brief Number of (equidistant) histogram bins original value given at command line.  */
+  const char *bins_help; /**< @brief Number of (equidistant) histogram bins help description.  */
   double mod_arg;	/**< @brief Final value of Wang-Landau modification factor.  */
   char * mod_orig;	/**< @brief Final value of Wang-Landau modification factor original value given at command line.  */
   const char *mod_help; /**< @brief Final value of Wang-Landau modification factor help description.  */
@@ -65,6 +68,7 @@ struct gengetopt_args_info
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
+  unsigned int bins_given ;	/**< @brief Whether bins was given.  */
   unsigned int mod_given ;	/**< @brief Whether mod was given.  */
   unsigned int flat_given ;	/**< @brief Whether flat was given.  */
   unsigned int info_given ;	/**< @brief Whether info was given.  */
