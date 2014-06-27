@@ -1,6 +1,6 @@
 /*
   wanglandau.c : main computation routines for Wang-Landau sampling
-  Last changed Time-stamp: <2014-06-26 15:49:07 mtw>
+  Last changed Time-stamp: <2014-06-27 11:14:55 mtw>
 
   Literature:
   Landau, PD and Tsai, S-H and Exler, M (2004) Am. J. Phys. 72:(10) 1294-1302
@@ -89,10 +89,10 @@ static void
 wl_montecarlo(const char *seq, char *struc)
 {
   short *pt=NULL;
-  int e,enew,emove,verbose;
+  int e,enew,emove;
   move_str m;
-  verbose = 0;
-  
+
+  printf("[[wl_montecarlo()]]\n");
   pt = vrna_pt_get(struc);
   //mtw_dump_pt(pt);
   //char *str = vrna_pt_to_db(pt);
@@ -101,7 +101,7 @@ wl_montecarlo(const char *seq, char *struc)
   printf("%s\n", wanglandau_opt.sequence);
   print_str(stdout,pt);printf(" %6.2f\n",(float)e/100);
 
-  m = get_random_move_pt(seq,pt,verbose);
+  m = get_random_move_pt(seq,pt,wanglandau_opt.verbose);
   emove = vrna_eval_move_pt(pt,s0,s1,m.left,m.right,P);
   apply_move_pt(pt,m);
   //mtw_dump_pt(pt);
