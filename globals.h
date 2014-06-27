@@ -1,12 +1,17 @@
+/*
+  globals.h : global definitions for Wang-Landau sampling
+  Last changed Time-stamp: <2014-06-27 12:53:20 mtw>
+*/
+
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
-//#include "config.h"
+#include "config.h"
 #include <gsl/gsl_histogram.h>
 
 /* variables/arrays */
 float mfe;
-gsl_histogram *h;
+gsl_histogram *h;     /* histogram */
 
 /* function pointers */
 void  (*pre_process_model)(void);

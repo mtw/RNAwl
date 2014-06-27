@@ -1,6 +1,6 @@
 /*
   wl_options.c Command-line parsing for Wang-Landau sampling
-  Last changed Time-stamp: <2014-06-26 23:31:52 mtw>
+  Last changed Time-stamp: <2014-06-27 12:00:21 mtw>
 */
 
 #include <stdio.h>
@@ -17,7 +17,6 @@ static void set_parameters(void);
 static void display_settings(void);
 static void to_basename(char *arg);
 static void parse_infile(FILE *fp);
-static void warn (FILE *hdl, char *fmt, ...);
 
 static struct gengetopt_args_info args_info;
 
@@ -83,7 +82,6 @@ set_parameters(void)
   }
 
   if (args_info.steps_given){
-    printf (stderr, "--steps given with value\n",args_info.steps_arg);
     if( (wanglandau_opt.steps = args_info.steps_arg) <= 0 ){
       fprintf(stderr, "Value of --steps must be > 0\n");
       exit (EXIT_FAILURE);
@@ -120,7 +118,7 @@ display_settings(void)
 	  "-f        = %g\n"
 	  "--flat    = %g\n"
 	  "--bins    = %d\n"
-	  "--steps   = %d\n"
+	  "--steps   = %lu\n"
 	  "--emax    = %g\n"
 	  "--Temp    = %4.2f\n",
 	  wanglandau_opt.ffinal,
@@ -172,19 +170,6 @@ to_basename(char *arg)
   free(s);
 }
 
-/* ==== */
-static void
-warn (FILE *hdl, char *fmt, ...)
-{
-  va_list args;
-  if ( hdl == NULL ) hdl = stderr;
-  va_start(args, fmt);
-  fprintf(hdl, "WARNING: ");
-  vfprintf(hdl, fmt, args);
-  fprintf(hdl,"\n");
-  fflush(hdl);
-  va_end(args);
-}
 
 /* ==== */
 void

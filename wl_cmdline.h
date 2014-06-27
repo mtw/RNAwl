@@ -57,7 +57,11 @@ struct gengetopt_args_info
   const char *flat_help; /**< @brief Flatness criterion for the histogram help description.  */
   int info_flag;	/**< @brief Show settings (default=off).  */
   const char *info_help; /**< @brief Show settings help description.  */
-  int steps_arg;	/**< @brief Number of Wang-Landau steps before histogram is checked for flatness.  */
+  #if defined(HAVE_LONG_LONG) || defined(HAVE_LONG_LONG_INT)
+  long long int steps_arg;	/**< @brief Number of Wang-Landau steps before histogram is checked for flatness.  */
+  #else
+  long steps_arg;	/**< @brief Number of Wang-Landau steps before histogram is checked for flatness.  */
+  #endif
   char * steps_orig;	/**< @brief Number of Wang-Landau steps before histogram is checked for flatness original value given at command line.  */
   const char *steps_help; /**< @brief Number of Wang-Landau steps before histogram is checked for flatness help description.  */
   float Temp_arg;	/**< @brief Temperatur in Celsius.  */

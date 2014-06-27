@@ -34,19 +34,19 @@ const char *gengetopt_args_info_versiontext = "";
 const char *gengetopt_args_info_description = "";
 
 const char *gengetopt_args_info_help[] = {
-  "  -h, --help         Print help and exit",
-  "  -V, --version      Print version and exit",
+  "  -h, --help            Print help and exit",
+  "  -V, --version         Print version and exit",
   "\nGeneral options:",
-  "  -b, --bins=INT     Number of (equidistant) histogram bins",
-  "      --emax=DOUBLE  Upper energy bound for sampling",
-  "  -f, --mod=DOUBLE   Final value of Wang-Landau modification factor",
-  "  -l, --flat=FLOAT   Flatness criterion for the histogram",
-  "      --info         Show settings  (default=off)",
-  "  -s, --steps=INT    Number of Wang-Landau steps before histogram is checked\n                       for flatness",
-  "  -T, --Temp=FLOAT   Temperatur in Celsius",
-  "  -v, --verbose      Verbose output  (default=off)",
+  "  -b, --bins=INT        Number of (equidistant) histogram bins",
+  "      --emax=DOUBLE     Upper energy bound for sampling",
+  "  -f, --mod=DOUBLE      Final value of Wang-Landau modification factor",
+  "  -l, --flat=FLOAT      Flatness criterion for the histogram",
+  "      --info            Show settings  (default=off)",
+  "  -s, --steps=LONGLONG  Number of Wang-Landau steps before histogram is checked\n                          for flatness",
+  "  -T, --Temp=FLOAT      Temperatur in Celsius",
+  "  -v, --verbose         Verbose output  (default=off)",
   "\nRNA-specific options:",
-  "  -n, --norm=INT     Set number of bins used for normalization",
+  "  -n, --norm=INT        Set number of bins used for normalization",
     0
 };
 
@@ -55,6 +55,7 @@ typedef enum {ARG_NO
   , ARG_INT
   , ARG_FLOAT
   , ARG_DOUBLE
+  , ARG_LONGLONG
 } cmdline_parser_arg_type;
 
 static
@@ -445,6 +446,13 @@ int update_arg(void *field, char **orig_field,
   case ARG_DOUBLE:
     if (val) *((double *)field) = strtod (val, &stop_char);
     break;
+  case ARG_LONGLONG:
+#if defined(HAVE_LONG_LONG) || defined(HAVE_LONG_LONG_INT)
+    if (val) *((long long int*)field) = (long long int) strtoll (val, &stop_char, 0);
+#else
+    if (val) *((long *)field) = (long)strtol (val, &stop_char, 0);
+#endif
+    break;
   default:
     break;
   };
@@ -454,6 +462,7 @@ int update_arg(void *field, char **orig_field,
   case ARG_INT:
   case ARG_FLOAT:
   case ARG_DOUBLE:
+  case ARG_LONGLONG:
     if (val && !(stop_char && *stop_char == '\0')) {
       fprintf(stderr, "%s: invalid numeric value: %s\n", package_name, val);
       return 1; /* failure */
@@ -592,7 +601,7 @@ cmdline_parser_internal (
         
           if (update_arg( (void *)&(args_info->steps_arg), 
                &(args_info->steps_orig), &(args_info->steps_given),
-              &(local_args_info.steps_given), optarg, 0, 0, ARG_INT,
+              &(local_args_info.steps_given), optarg, 0, 0, ARG_LONGLONG,
               check_ambiguity, override, 0, 0,
               "steps", 's',
               additional_error))
