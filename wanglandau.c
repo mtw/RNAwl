@@ -1,6 +1,6 @@
 /*
   wanglandau.c : main computation routines for Wang-Landau sampling
-  Last changed Time-stamp: <2014-06-27 13:13:41 mtw>
+  Last changed Time-stamp: <2014-06-29 23:32:55 mtw>
 
   Literature:
   Landau, PD and Tsai, S-H and Exler, M (2004) Am. J. Phys. 72:(10) 1294-1302
@@ -20,6 +20,7 @@
 #include "wl_rna.h"
 #include "moves.h"
 
+
 #define MIN2(A, B)  ((A) < (B) ? (A) : (B))
 #define MAX2(A, B)  ((A) > (B) ? (A) : (B))
 
@@ -27,6 +28,7 @@
 static void initialize_wl(void);
 static gsl_histogram *ini_histogram(const int,const double,const double);
 static void wl_montecarlo(char *);
+static short histogram_is_flat(const gsl_histogram *);
 
 /* variables */
 static int iterations=0;   /* # of iterations (modifications with f) */
@@ -54,6 +56,7 @@ wanglandau(void)
 static void
 initialize_wl(void)
 {
+  int bins;
   double lo,hi, hmin, hmax,erange;
   srand(time(NULL));
   printf("[[initialize_wl()]]\n");
@@ -70,16 +73,18 @@ initialize_wl(void)
 
   /* prepare histogram h */
   h = ini_histogram(wanglandau_opt.bins,(int)hmin,hmax);
-  gsl_histogram_set_ranges_uniform(h,hmin,hmax);
   // populate lowest bin with true DOS from subopt
   gsl_histogram_get_range(h,0,&lo,&hi);
   wanglandau_opt.erange=(float)fabs(mfe-hi+0.01);
   printf("bin 1: %6.3g -- %6.3g wl_opt.erange=%6.3f\n",lo,hi,wanglandau_opt.erange);
   //gsl_histogram_fprintf(stderr,h,"%6.3g","%6g");
-
+  bins = gsl_histogram_bins(h);
+  fprintf(stderr, "histogram h allocated with %zu bins\n",bins);
+  
   /* prepare histogram g */
   g = ini_histogram(wanglandau_opt.bins,(int)hmin,hmax);
-  gsl_histogram_set_ranges_uniform(h,hmin,hmax);
+  bins = gsl_histogram_bins(g);
+  fprintf(stderr, "histogram g allocated with %d bins\n",bins);
 }
 
 /* ==== */
@@ -87,11 +92,11 @@ static void
 wl_montecarlo(char *struc)
 {
   short *pt=NULL;
-  int e,enew,emove,eval_me;
+  int e,enew,emove,eval_me,status;
   int lnf = 1;   /* logarithmic modification parameter f */
-  move_str m;
   size_t e1,e2;  /* indices in g/h corresponding to energies */
-  
+  move_str m;
+
   eval_me = 1; /* paranoid checking of neighbors against RNAeval */
   printf("[[wl_montecarlo()]]\n");
 
@@ -100,11 +105,19 @@ wl_montecarlo(char *struc)
   //char *str = vrna_pt_to_db(pt);
   //printf(">%s<\n",str);
   e = vrna_eval_structure_pt(wanglandau_opt.sequence,pt,P);
-
-  gsl_histogram_find(g,e,&e1);
+  fprintf(stderr, "trying to finfing e=%6.2f in histogram g\n",(float)e/100);
+  status = gsl_histogram_find(g,(float)e/100,&e1);
+  if (status) {
+    if (status == GSL_EDOM){
+      printf ("error: %s\n", gsl_strerror (status));
+    }
+    else {fprintf(stderr, "GSL error: gsl_errno=%d\n",status);}
+    exit(EXIT_FAILURE);
+  }
+  
   
   printf("%s\n", wanglandau_opt.sequence);
-  print_str(stdout,pt);printf(" %6.2f bin:%zu\n",(float)e/100);
+  print_str(stdout,pt);printf(" %6.2f bin:%d\n",(float)e/100,e1);
 
   m = get_random_move_pt(wanglandau_opt.sequence,pt,wanglandau_opt.verbose);
   emove = vrna_eval_move_pt(pt,s0,s1,m.left,m.right,P);
@@ -115,7 +128,7 @@ wl_montecarlo(char *struc)
   print_str(stdout,pt);printf(" %6.2f\n",(float)enew/100);
   e = vrna_eval_structure_pt(wanglandau_opt.sequence,pt,P);
   if (eval_me == 1 && e != enew){
-    printf(stderr, "energy evaluation against vrna_eval_structure_pt() mismatch: HAVE %6.2f != %6.2f (SHOULD BE)\n",(float)enew/100, (float)e/100);
+    fprintf(stderr, "energy evaluation against vrna_eval_structure_pt() mismatch... HAVE %6.2f != %6.2f (SHOULD BE)\n",(float)enew/100, (float)e/100);
     exit(EXIT_FAILURE);
   }
   //print_str(stdout,pt);printf(" %6.2f\n",(float)e/100);
@@ -131,6 +144,61 @@ ini_histogram(const int n,
   gsl_histogram_set_ranges_uniform(a,min,max);
   return a;
 }
+
+/* ==== */
+static short
+histogram_is_flat(const gsl_histogram *z)
+{
+  double val,avg,sum = 0.0;
+  size_t lbin,gbin;        /* lowest/greatest populated bin */
+  int i,b=0,is_flat=1;
+
+  // get lowest populated bin
+  fprintf(stderr,"[[histogram_is_flat()]]\n");
+  for (i=0; i<wanglandau_opt.bins; i++){
+    val = gsl_histogram_get(z,i);
+    if (val>0){
+      lbin=i;
+      break;
+    }
+  }
+  printf("lbin is %i\n",lbin);
+
+  // get highest populated bin
+  for (i=wanglandau_opt.bins-1; i>=0; i--){
+    val = gsl_histogram_get(z,i);
+    if (val > 0){
+      gbin=i;
+      break;
+    }
+  }
+  printf("gbin is %i\n",gbin);
+
+  // compute average over interval [lbin;gbin]
+  for (i=lbin;i<=gbin;i++){
+    if ((val = gsl_histogram_get(z,i)) != 0){
+      sum += val;
+      b++;
+    }
+  }
+  avg = sum/b;
+
+  // evaluate if populated bins are all within accepted range
+  for (i=lbin;i<=gbin;i++){
+    if ((val = gsl_histogram_get(z,i)) != 0){
+      if( val < wanglandau_opt.flat*avg){
+	is_flat = 0;
+	break;
+      }
+    }
+  }
+
+  
+ 
+  return is_flat;
+
+}
+
 
 /* ==== */
 void
