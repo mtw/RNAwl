@@ -1,6 +1,6 @@
 /*
   wanglandau.c : main computation routines for Wang-Landau sampling
-  Last changed Time-stamp: <2014-06-29 23:32:55 mtw>
+  Last changed Time-stamp: <2014-06-30 16:32:43 mtw>
 
   Literature:
   Landau, PD and Tsai, S-H and Exler, M (2004) Am. J. Phys. 72:(10) 1294-1302
@@ -20,7 +20,6 @@
 #include "wl_rna.h"
 #include "moves.h"
 
-
 #define MIN2(A, B)  ((A) < (B) ? (A) : (B))
 #define MAX2(A, B)  ((A) > (B) ? (A) : (B))
 
@@ -33,6 +32,8 @@ static short histogram_is_flat(const gsl_histogram *);
 /* variables */
 static int iterations=0;   /* # of iterations (modifications with f) */
 static long int steps=0;   /* # of WL steps */
+const gsl_rng_type *T;
+gsl_rng * r;
 
 /* arrays */
 gsl_histogram *g;
@@ -85,6 +86,12 @@ initialize_wl(void)
   g = ini_histogram(wanglandau_opt.bins,(int)hmin,hmax);
   bins = gsl_histogram_bins(g);
   fprintf(stderr, "histogram g allocated with %d bins\n",bins);
+
+  /* prepare gsl random-number generation */
+  gsl_rng_env_setup();
+  T = gsl_rng_rand48;
+  r = gsl_rng_alloc (T);
+
 }
 
 /* ==== */
@@ -93,8 +100,8 @@ wl_montecarlo(char *struc)
 {
   short *pt=NULL;
   int e,enew,emove,eval_me,status;
-  int lnf = 1;   /* logarithmic modification parameter f */
-  size_t e1,e2;  /* indices in g/h corresponding to energies */
+  double prob,rnum,lnf = 1;   /* logarithmic modification parameter f */
+  size_t b1,b2;               /* indices in g/h corresponding to old/new energies */
   move_str m;
 
   eval_me = 1; /* paranoid checking of neighbors against RNAeval */
@@ -105,8 +112,9 @@ wl_montecarlo(char *struc)
   //char *str = vrna_pt_to_db(pt);
   //printf(">%s<\n",str);
   e = vrna_eval_structure_pt(wanglandau_opt.sequence,pt,P);
-  fprintf(stderr, "trying to finfing e=%6.2f in histogram g\n",(float)e/100);
-  status = gsl_histogram_find(g,(float)e/100,&e1);
+  
+  fprintf(stderr, "trying to finding e=%6.2f in histogram g\n",(float)e/100);
+  status = gsl_histogram_find(g,(float)e/100,&b1);
   if (status) {
     if (status == GSL_EDOM){
       printf ("error: %s\n", gsl_strerror (status));
@@ -114,24 +122,41 @@ wl_montecarlo(char *struc)
     else {fprintf(stderr, "GSL error: gsl_errno=%d\n",status);}
     exit(EXIT_FAILURE);
   }
-  
-  
   printf("%s\n", wanglandau_opt.sequence);
-  print_str(stdout,pt);printf(" %6.2f bin:%d\n",(float)e/100,e1);
+  print_str(stdout,pt);printf(" %6.2f bin:%d\n",(float)e/100,b1);
 
-  m = get_random_move_pt(wanglandau_opt.sequence,pt,wanglandau_opt.verbose);
-  emove = vrna_eval_move_pt(pt,s0,s1,m.left,m.right,P);
-  apply_move_pt(pt,m);
-  //mtw_dump_pt(pt);
-  enew = e + emove;
-  //printf ("performed move l:%4d r:%4d\t Energy +/- %6.2f\n",m.left,m.right,(float)emove/100);
-  print_str(stdout,pt);printf(" %6.2f\n",(float)enew/100);
-  e = vrna_eval_structure_pt(wanglandau_opt.sequence,pt,P);
-  if (eval_me == 1 && e != enew){
-    fprintf(stderr, "energy evaluation against vrna_eval_structure_pt() mismatch... HAVE %6.2f != %6.2f (SHOULD BE)\n",(float)enew/100, (float)e/100);
-    exit(EXIT_FAILURE);
-  }
-  //print_str(stdout,pt);printf(" %6.2f\n",(float)e/100);
+  while (lnf > wanglandau_opt.ffinal) {
+    rnum =  gsl_rng_uniform (r);
+    if(wanglandau_opt.verbose)
+      printf("rnum %8.2f\n");
+    m = get_random_move_pt(wanglandau_opt.sequence,pt,wanglandau_opt.verbose);
+    emove = vrna_eval_move_pt(pt,s0,s1,m.left,m.right,P);
+    apply_move_pt(pt,m);
+    //mtw_dump_pt(pt);
+    enew = e + emove;
+    status = gsl_histogram_find(g,(float)enew/100,&b2);
+    if (status) {
+      if (status == GSL_EDOM){
+	printf ("error: %s\n", gsl_strerror (status));
+      }
+      else {fprintf(stderr, "GSL error: gsl_errno=%d\n",status);}
+      exit(EXIT_FAILURE);
+    }
+    steps++;  /* # of MC steps performed so far */
+
+    // stuff that can be skipped 
+    //printf ("performed move l:%4d r:%4d\t Energy +/- %6.2f\n",m.left,m.right,(float)emove/100);
+    print_str(stdout,pt);printf(" %6.2f bin:%d\n",(float)enew/100,b2);
+    e = vrna_eval_structure_pt(wanglandau_opt.sequence,pt,P);
+    if (eval_me == 1 && e != enew){
+      fprintf(stderr, "energy evaluation against vrna_eval_structure_pt() mismatch... HAVE %6.2f != %6.2f (SHOULD BE)\n",(float)enew/100, (float)e/100);
+      exit(EXIT_FAILURE);
+    }
+    //print_str(stdout,pt);printf(" %6.2f\n",(float)e/100);
+    // end of stuff that can be skipped
+    
+
+  } // end while
 }
 
 /* ==== */
@@ -215,6 +240,7 @@ wanglandau_free_memory(void)
 {
   gsl_histogram_free(h);
   gsl_histogram_free(g);
+  gsl_rng_free (r);
   free(pt);
   free(s0);
   free(s1);

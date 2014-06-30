@@ -1,6 +1,6 @@
 /*
   globals.h : global definitions for Wang-Landau sampling
-  Last changed Time-stamp: <2014-06-29 00:49:30 mtw>
+  Last changed Time-stamp: <2014-06-30 15:26:14 mtw>
 */
 
 #ifndef GLOBALS_H
@@ -8,6 +8,7 @@
 
 #include "config.h"
 #include <gsl/gsl_histogram.h>
+#include <gsl/gsl_rng.h>
 #include <gsl/gsl_errno.h>
 
 /* variables/arrays */
