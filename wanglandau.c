@@ -1,6 +1,6 @@
 /*
   wanglandau.c : main computation routines for Wang-Landau sampling
-  Last changed Time-stamp: <2014-06-30 16:32:43 mtw>
+  Last changed Time-stamp: <2014-07-01 13:04:26 mtw>
 
   Literature:
   Landau, PD and Tsai, S-H and Exler, M (2004) Am. J. Phys. 72:(10) 1294-1302
@@ -33,10 +33,10 @@ static short histogram_is_flat(const gsl_histogram *);
 static int iterations=0;   /* # of iterations (modifications with f) */
 static long int steps=0;   /* # of WL steps */
 const gsl_rng_type *T;
-gsl_rng * r;
+gsl_rng *r = NULL;;
 
 /* arrays */
-gsl_histogram *g;
+gsl_histogram *g = NULL;
 
 /* ==== */
 void
@@ -58,7 +58,10 @@ static void
 initialize_wl(void)
 {
   int bins;
-  double lo,hi, hmin, hmax,erange;
+  double lo, hi, hmin, hmax,erange;
+  unsigned long seed;
+  struct timespec ts;
+  
   srand(time(NULL));
   printf("[[initialize_wl()]]\n");
   /* assign function pointers */
@@ -88,10 +91,13 @@ initialize_wl(void)
   fprintf(stderr, "histogram g allocated with %d bins\n",bins);
 
   /* prepare gsl random-number generation */
+  (void) clock_gettime(CLOCK_REALTIME, &ts);
+  seed =   ts.tv_sec ^ ts.tv_nsec;
+  printf("seed: %d\n",seed);
   gsl_rng_env_setup();
-  T = gsl_rng_rand48;
-  r = gsl_rng_alloc (T);
-
+  gsl_rng_env_setup();
+  r = gsl_rng_alloc (gsl_rng_mt19937);
+  gsl_rng_set( r, seed );
 }
 
 /* ==== */
@@ -132,7 +138,7 @@ wl_montecarlo(char *struc)
     m = get_random_move_pt(wanglandau_opt.sequence,pt,wanglandau_opt.verbose);
     emove = vrna_eval_move_pt(pt,s0,s1,m.left,m.right,P);
     apply_move_pt(pt,m);
-    //mtw_dump_pt(pt);
+    mtw_dump_pt(pt);
     enew = e + emove;
     status = gsl_histogram_find(g,(float)enew/100,&b2);
     if (status) {

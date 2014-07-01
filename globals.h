@@ -1,6 +1,6 @@
 /*
   globals.h : global definitions for Wang-Landau sampling
-  Last changed Time-stamp: <2014-06-30 15:26:14 mtw>
+  Last changed Time-stamp: <2014-07-01 12:20:12 mtw>
 */
 
 #ifndef GLOBALS_H
@@ -14,6 +14,7 @@
 /* variables/arrays */
 float mfe;
 gsl_histogram *h;     /* histogram */
+gsl_rng *r;           /* random number generator */
 
 /* function pointers */
 void  (*pre_process_model)(void);
