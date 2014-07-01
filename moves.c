@@ -28,10 +28,12 @@ get_random_move_pt(const char *seq, const short int *pt,int verbose)
   count = construct_moves_new((const char *)seq,pt,1,&mvs);
   
   if (verbose ==1){
+    /*
     for (i = 0; i<count; i++) {  
       printf("%d %d\n", mvs[i].left, mvs[i].right);
     }
-    printf ("++ applying move #%i: left %i right %i\n",i,mvs[i].left,mvs[i].right);
+    */
+    printf ("++ applying move: left %i right %i\n",mvs[0].left,mvs[0].right);
   }
   
   r.left  = mvs[0].left;

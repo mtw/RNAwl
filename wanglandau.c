@@ -1,6 +1,6 @@
 /*
   wanglandau.c : main computation routines for Wang-Landau sampling
-  Last changed Time-stamp: <2014-07-01 13:04:26 mtw>
+  Last changed Time-stamp: <2014-07-01 17:43:51 mtw>
 
   Literature:
   Landau, PD and Tsai, S-H and Exler, M (2004) Am. J. Phys. 72:(10) 1294-1302
@@ -14,11 +14,13 @@
 #include <signal.h>
 #include <math.h>
 #include <time.h>
+#include <sys/time.h>
 #include <assert.h>
 #include "globals.h"
 #include "wl_options.h"
 #include "wl_rna.h"
 #include "moves.h"
+#include <gsl/gsl_rng.h>
 
 #define MIN2(A, B)  ((A) < (B) ? (A) : (B))
 #define MAX2(A, B)  ((A) > (B) ? (A) : (B))
@@ -32,8 +34,10 @@ static short histogram_is_flat(const gsl_histogram *);
 /* variables */
 static int iterations=0;   /* # of iterations (modifications with f) */
 static long int steps=0;   /* # of WL steps */
-const gsl_rng_type *T;
-gsl_rng *r = NULL;;
+gsl_rng *r = NULL;
+unsigned long seed;
+struct timespec ts;
+double rnum;
 
 /* arrays */
 gsl_histogram *g = NULL;
@@ -59,8 +63,6 @@ initialize_wl(void)
 {
   int bins;
   double lo, hi, hmin, hmax,erange;
-  unsigned long seed;
-  struct timespec ts;
   
   srand(time(NULL));
   printf("[[initialize_wl()]]\n");
@@ -95,9 +97,8 @@ initialize_wl(void)
   seed =   ts.tv_sec ^ ts.tv_nsec;
   printf("seed: %d\n",seed);
   gsl_rng_env_setup();
-  gsl_rng_env_setup();
   r = gsl_rng_alloc (gsl_rng_mt19937);
-  gsl_rng_set( r, seed );
+  gsl_rng_set( r, seed ); 
 }
 
 /* ==== */
@@ -106,8 +107,8 @@ wl_montecarlo(char *struc)
 {
   short *pt=NULL;
   int e,enew,emove,eval_me,status;
-  double prob,rnum,lnf = 1;   /* logarithmic modification parameter f */
-  size_t b1,b2;               /* indices in g/h corresponding to old/new energies */
+  double g_b1,g_b2,prob,lnf = 1;   /* logarithmic modification parameter f */
+  size_t b1,b2;                    /* indices in g/h corresponding to old/new energies */
   move_str m;
 
   eval_me = 1; /* paranoid checking of neighbors against RNAeval */
@@ -120,6 +121,7 @@ wl_montecarlo(char *struc)
   e = vrna_eval_structure_pt(wanglandau_opt.sequence,pt,P);
   
   fprintf(stderr, "trying to finding e=%6.2f in histogram g\n",(float)e/100);
+  /* determine bin where the start structure goes */
   status = gsl_histogram_find(g,(float)e/100,&b1);
   if (status) {
     if (status == GSL_EDOM){
@@ -132,14 +134,16 @@ wl_montecarlo(char *struc)
   print_str(stdout,pt);printf(" %6.2f bin:%d\n",(float)e/100,b1);
 
   while (lnf > wanglandau_opt.ffinal) {
-    rnum =  gsl_rng_uniform (r);
-    if(wanglandau_opt.verbose)
-      printf("rnum %8.2f\n");
+    /* make a random move */
     m = get_random_move_pt(wanglandau_opt.sequence,pt,wanglandau_opt.verbose);
+    /* compute energy difference for this move */
     emove = vrna_eval_move_pt(pt,s0,s1,m.left,m.right,P);
+    /* apply the move */
     apply_move_pt(pt,m);
-    mtw_dump_pt(pt);
+    //mtw_dump_pt(pt);
+    /* evaluate energy of the new structure */
     enew = e + emove;
+    /* determine bin where the new structure goes */
     status = gsl_histogram_find(g,(float)enew/100,&b2);
     if (status) {
       if (status == GSL_EDOM){
@@ -149,7 +153,39 @@ wl_montecarlo(char *struc)
       exit(EXIT_FAILURE);
     }
     steps++;  /* # of MC steps performed so far */
+    /* lookup current values for bins b1 and b2 */
+    g_b1 = gsl_histogram_get(g,b1);
+    g_b2 = gsl_histogram_get(g,b2);
+    /* core MC steps */
+    prob = MIN2(exp(g_b1 - g_b2), 1.0);
+    rnum =  gsl_rng_uniform (r);
+    if(wanglandau_opt.verbose){ printf ("rnum is %.5f\n", rnum); }
 
+    if ((prob == 1 || (rnum <= prob)) &&
+	e>=wl_opt.emin && e<=wl_opt.emax ) { /* accept the move */
+      if(wl_opt.bsize){
+	tmp = strdup(neighbor);
+	gb=find_basin(neighbor, e);
+	if(strcmp(gb,basin[0].structure)!=0){ /* other basin */
+	  free(neighbor);
+	  free(tmp);
+	  free(gb);
+	  continue;
+	}
+	free(gb);
+	free(neighbor);
+	neighbor=tmp;
+      }
+      /* fprintf(stderr, "accepting %s %6.4f\n", neighbor, e); */
+      e1 = e2;
+      reset_stapel();
+      move_it(neighbor);
+      free(neighbor);
+    }
+    else { /* reject the move */
+      free(neighbor);
+    }
+    
     // stuff that can be skipped 
     //printf ("performed move l:%4d r:%4d\t Energy +/- %6.2f\n",m.left,m.right,(float)emove/100);
     print_str(stdout,pt);printf(" %6.2f bin:%d\n",(float)enew/100,b2);
@@ -161,8 +197,9 @@ wl_montecarlo(char *struc)
     //print_str(stdout,pt);printf(" %6.2f\n",(float)e/100);
     // end of stuff that can be skipped
     
-
+    lnf /= 2;
   } // end while
+  free(pt); /* is there a function in libRNA2? */
 }
 
 /* ==== */
@@ -246,10 +283,13 @@ wanglandau_free_memory(void)
 {
   gsl_histogram_free(h);
   gsl_histogram_free(g);
-  gsl_rng_free (r);
+  gsl_rng_free(r);
   free(pt);
   free(s0);
   free(s1);
   free(wanglandau_opt.sequence);
   free(wanglandau_opt.structure);
+  free(wanglandau_opt.basename);
+  free(P);
+  dealloc_gengetopt();
 }

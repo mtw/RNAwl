@@ -1,6 +1,6 @@
 /*
   wl_options.c Command-line parsing for Wang-Landau sampling
-  Last changed Time-stamp: <2014-06-27 12:00:21 mtw>
+  Last changed Time-stamp: <2014-07-01 16:45:13 mtw>
 */
 
 #include <stdio.h>
@@ -43,6 +43,9 @@ process_commandline (int argc, char *argv[])
     wanglandau_opt.INFILE = stdin;
   
   parse_infile(wanglandau_opt.INFILE);
+  if (args_info.inputs_num){
+    fclose(wanglandau_opt.INFILE);
+  }
 }
 
 /* ==== */
