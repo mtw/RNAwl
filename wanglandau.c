@@ -1,6 +1,6 @@
 /*
   wanglandau.c : main computation routines for Wang-Landau sampling
-  Last changed Time-stamp: <2014-07-01 17:43:51 mtw>
+  Last changed Time-stamp: <2014-07-02 00:11:03 mtw>
 
   Literature:
   Landau, PD and Tsai, S-H and Exler, M (2004) Am. J. Phys. 72:(10) 1294-1302
@@ -32,15 +32,16 @@ static void wl_montecarlo(char *);
 static short histogram_is_flat(const gsl_histogram *);
 
 /* variables */
-static int iterations=0;   /* # of iterations (modifications with f) */
-static long int steps=0;   /* # of WL steps */
-gsl_rng *r = NULL;
-unsigned long seed;
-struct timespec ts;
-double rnum;
+static int iterations = 0;       /* # of iterations (modifications with f) */
+static int maxbin = -1;          /* index of highest bin */
+static unsigned long steps = 0;  /* # of WL steps */
+static unsigned long seed;       /* random seed */
+static gsl_rng *r = NULL;        /* GSL random number generator */
+static struct timespec ts;       /* timespec struct needed for random seed */
+static double rnum;              /* random number */
 
 /* arrays */
-gsl_histogram *g = NULL;
+gsl_histogram *g = NULL;         /* DoS histogram */
 
 /* ==== */
 void
@@ -98,7 +99,9 @@ initialize_wl(void)
   printf("seed: %d\n",seed);
   gsl_rng_env_setup();
   r = gsl_rng_alloc (gsl_rng_mt19937);
-  gsl_rng_set( r, seed ); 
+  gsl_rng_set( r, seed );
+
+  return;
 }
 
 /* ==== */
@@ -138,9 +141,6 @@ wl_montecarlo(char *struc)
     m = get_random_move_pt(wanglandau_opt.sequence,pt,wanglandau_opt.verbose);
     /* compute energy difference for this move */
     emove = vrna_eval_move_pt(pt,s0,s1,m.left,m.right,P);
-    /* apply the move */
-    apply_move_pt(pt,m);
-    //mtw_dump_pt(pt);
     /* evaluate energy of the new structure */
     enew = e + emove;
     /* determine bin where the new structure goes */
@@ -156,51 +156,72 @@ wl_montecarlo(char *struc)
     /* lookup current values for bins b1 and b2 */
     g_b1 = gsl_histogram_get(g,b1);
     g_b2 = gsl_histogram_get(g,b2);
+    
     /* core MC steps */
     prob = MIN2(exp(g_b1 - g_b2), 1.0);
     rnum =  gsl_rng_uniform (r);
     if(wanglandau_opt.verbose){ printf ("rnum is %.5f\n", rnum); }
-
-    if ((prob == 1 || (rnum <= prob)) &&
-	e>=wl_opt.emin && e<=wl_opt.emax ) { /* accept the move */
-      if(wl_opt.bsize){
-	tmp = strdup(neighbor);
-	gb=find_basin(neighbor, e);
-	if(strcmp(gb,basin[0].structure)!=0){ /* other basin */
-	  free(neighbor);
-	  free(tmp);
-	  free(gb);
-	  continue;
-	}
-	free(gb);
-	free(neighbor);
-	neighbor=tmp;
-      }
+    
+    if ((prob == 1 || (rnum <= prob)) ) { /* accept the move */
+      /* apply the move */
+      apply_move_pt(pt,m);
       /* fprintf(stderr, "accepting %s %6.4f\n", neighbor, e); */
-      e1 = e2;
-      reset_stapel();
-      move_it(neighbor);
-      free(neighbor);
+      //mtw_dump_pt(pt);
+      b1 = b2;
+      e = enew;
     }
     else { /* reject the move */
-      free(neighbor);
+      ;
     }
-    
-    // stuff that can be skipped 
-    //printf ("performed move l:%4d r:%4d\t Energy +/- %6.2f\n",m.left,m.right,(float)emove/100);
-    print_str(stdout,pt);printf(" %6.2f bin:%d\n",(float)enew/100,b2);
-    e = vrna_eval_structure_pt(wanglandau_opt.sequence,pt,P);
-    if (eval_me == 1 && e != enew){
-      fprintf(stderr, "energy evaluation against vrna_eval_structure_pt() mismatch... HAVE %6.2f != %6.2f (SHOULD BE)\n",(float)enew/100, (float)e/100);
+    /* update histogram h */
+    status = gsl_histogram_increment(h,(float)e/100);
+    if (status) {
+      if (status == GSL_EDOM){
+	printf ("increment h error: %s\n", gsl_strerror (status));
+	printf ("while trying to increment bin at value %d\n",e);
+      }
+      else {fprintf(stderr, "GSL error: gsl_errno=%d\n",status);}
       exit(EXIT_FAILURE);
     }
-    //print_str(stdout,pt);printf(" %6.2f\n",(float)e/100);
+    /* update histogram g */
+    status = gsl_histogram_accumulate(g,(float)e/100,lnf);
+    if (status) {
+      if (status == GSL_EDOM){
+	printf ("increment g error: %s\n", gsl_strerror (status));
+      }
+      else {fprintf(stderr, "GSL error: gsl_errno=%d\n",status);}
+      exit(EXIT_FAILURE);
+    }
+    maxbin = MAX2(maxbin,b1);
+    
+    // stuff that can be skipped 
+    /*
+      printf ("performed move l:%4d r:%4d\t Energy +/- %6.2f\n",m.left,m.right,(float)emove/100);
+      print_str(stdout,pt);printf(" %6.2f bin:%d\n",(float)enew/100,b2);
+      e = vrna_eval_structure_pt(wanglandau_opt.sequence,pt,P);
+      if (eval_me == 1 && e != enew){
+      fprintf(stderr, "energy evaluation against vrna_eval_structure_pt() mismatch... HAVE %6.2f != %6.2f (SHOULD BE)\n",(float)enew/100, (float)e/100);
+      exit(EXIT_FAILURE);
+      }
+      print_str(stdout,pt);printf(" %6.2f\n",(float)e/100);
+    */
     // end of stuff that can be skipped
     
-    lnf /= 2;
-  } // end while
-  free(pt); /* is there a function in libRNA2? */
+    if(steps % (wanglandau_opt.steps) == 0) {
+      if( histogram_is_flat(h) ) {
+	lnf /= 2;
+	fprintf(stderr,"# histogram is flat  f=%12g steps=%20li ",lnf,steps);
+	gsl_histogram_reset(h);
+      }
+      else {
+	fprintf(stderr, "#lnf=%12g steps=%20li not flat ", lnf, steps);
+      }
+    }
+  } /* end while */
+  free(pt); 
+  return;
 }
+
 
 /* ==== */
 static gsl_histogram *
@@ -230,7 +251,7 @@ histogram_is_flat(const gsl_histogram *z)
       break;
     }
   }
-  printf("lbin is %i\n",lbin);
+  /* printf("lbin is %i\n",lbin);*/
 
   // get highest populated bin
   for (i=wanglandau_opt.bins-1; i>=0; i--){
@@ -240,7 +261,7 @@ histogram_is_flat(const gsl_histogram *z)
       break;
     }
   }
-  printf("gbin is %i\n",gbin);
+  /* printf("gbin is %i\n",gbin);*/
 
   // compute average over interval [lbin;gbin]
   for (i=lbin;i<=gbin;i++){
@@ -260,11 +281,7 @@ histogram_is_flat(const gsl_histogram *z)
       }
     }
   }
-
-  
- 
   return is_flat;
-
 }
 
 
@@ -275,6 +292,7 @@ sighandler (int signum)
   fprintf(stderr, "steps=%12li\n", steps);
     fflush(stderr);
   signal(SIGUSR1, sighandler);
+  return;
 }
 
 /* ==== */
@@ -292,4 +310,5 @@ wanglandau_free_memory(void)
   free(wanglandau_opt.basename);
   free(P);
   dealloc_gengetopt();
+  return;
 }
