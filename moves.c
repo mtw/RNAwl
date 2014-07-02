@@ -23,11 +23,11 @@ move_str
 get_random_move_pt(const char *seq, const short int *pt,int verbose)
 {
   move_str r,*mvs=NULL;
-  int i,count;
+  int i,count,debug=0;
   
   count = construct_moves_new((const char *)seq,pt,1,&mvs);
   
-  if (verbose ==1){
+  if (debug==1){
     /*
     for (i = 0; i<count; i++) {  
       printf("%d %d\n", mvs[i].left, mvs[i].right);
