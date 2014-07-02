@@ -1,6 +1,6 @@
 /*
   wanglandau.c : main computation routines for Wang-Landau sampling
-  Last changed Time-stamp: <2014-07-02 16:56:36 mtw>
+  Last changed Time-stamp: <2014-07-03 00:27:55 mtw>
 
   Literature:
   Landau, PD and Tsai, S-H and Exler, M (2004) Am. J. Phys. 72:(10) 1294-1302
@@ -29,6 +29,7 @@
 static void initialize_wl(void);
 static void wl_montecarlo(char *);
 static void scale_normalize_DOS(void);
+static void output_dos(double *dos, char T);
 static short histogram_is_flat(const gsl_histogram *);
 static gsl_histogram *ini_histogram(const int,const double,const double);
 
@@ -43,6 +44,7 @@ static double rnum;              /* random number */
 
 /* arrays */
 gsl_histogram *g = NULL;         /* DoS histogram */
+static char *out_prefix=NULL;    /* prefix for output */
 
 /* ==== */
 void
@@ -52,9 +54,11 @@ wanglandau(void)
 			  allocate histograms */
   pre_process_model(); /* get normalization factor for histogram by
 			  populating the first bin */
-  printf("[[wanlandau()]]\n");
-  if(wanglandau_opt.verbose)
-    gsl_histogram_fprintf(stderr,h,"%6.3g","%6g");
+  
+ 
+  if(wanglandau_opt.verbose){
+    printf("[[wanlandau()]]\n");
+  }
   wl_montecarlo(wanglandau_opt.structure);
   scale_normalize_DOS();
   post_process_model();
@@ -79,9 +83,11 @@ initialize_wl(void)
 
   initialize_model(wanglandau_opt.sequence); /* set energy paramters for
 						current model; get mfe */
-  hmin=floor(mfe);
-  hmax=10*fabs(mfe);
-  //printf ("-> mfe is %4.2f | hmin is %4.2f | hmax is %4.2f <-\n", mfe,hmin,hmax);
+  //hmin=floor(mfe);
+  hmin=mfe-0.10001;
+  hmax=5*fabs(mfe);
+  /*printf ("-> mfe is %4.2f | hmin is %4.2f | hmax is %4.2f <-\n",
+    mfe,hmin,hmax); */
 
   /* prepare histogram h (holds energy levels seen in the current
      iteration) */
@@ -105,7 +111,7 @@ initialize_wl(void)
     fprintf(stderr, "histogram s allocated with %d bins\n",bins);
   }
 
-  dos = (double)caloc(wanglandau_opt.bins,sizeof(double));
+  dos = (double*)calloc(wanglandau_opt.bins,sizeof(double));
   assert(dos != NULL);
   
 
@@ -143,14 +149,15 @@ static void
 wl_montecarlo(char *struc)
 {
   short *pt=NULL;
-  int e,enew,emove,eval_me,status;
+  int e,enew,emove,eval_me,status,debug=1;
   double g_b1,g_b2,prob,lnf = 1;   /* logarithmic modification parameter f */
   size_t b1,b2;                    /* indices in g/h corresponding to old/new energies */
   move_str m;
 
   eval_me = 1; /* paranoid checking of neighbors against RNAeval */
-  printf("[[wl_montecarlo()]]\n");
-
+  if (wanglandau_opt.verbose){
+    printf("[[wl_montecarlo()]]\n");
+  }
   pt = vrna_pt_get(struc);
   //mtw_dump_pt(pt);
   //char *str = vrna_pt_to_db(pt);
@@ -168,7 +175,9 @@ wl_montecarlo(char *struc)
   }
   printf("%s\n", wanglandau_opt.sequence);
   print_str(stdout,pt);printf(" %6.2f bin:%d\n",(float)e/100,b1);
-
+  if (wanglandau_opt.verbose){
+    fprintf(stderr,"Starting MC loop ...\n");
+  }
   while (lnf > wanglandau_opt.ffinal) {
     /* make a random move */
     m = get_random_move_pt(wanglandau_opt.sequence,pt,wanglandau_opt.verbose);
@@ -187,13 +196,21 @@ wl_montecarlo(char *struc)
     }
     steps++;  /* # of MC steps performed so far */
     /* lookup current values for bins b1 and b2 */
+    if (debug == 1){
+      fprintf(stderr,"==================\n");
+      gsl_histogram_fprintf(stderr,g,"%6.3g","%8.6g");
+      fprintf(stderr,"\n");
+    }
     g_b1 = gsl_histogram_get(g,b1);
     g_b2 = gsl_histogram_get(g,b2);
+    if(debug ==1){
+      fprintf(stderr,"b1=%i g_b1: %6.2f | b2=%i g_b2: %6.2f\n",b1,g_b1,b2,g_b2);
+    }
     
     /* core MC steps */
     prob = MIN2(exp(g_b1 - g_b2), 1.0);
     rnum =  gsl_rng_uniform (r);
-    if(wanglandau_opt.verbose){ printf ("rnum is %.5f\n", rnum); }
+    /* if(wanglandau_opt.verbose){ printf ("rnum is %.5f\n", rnum); }*/
     
     if ((prob == 1 || (rnum <= prob)) ) { /* accept the move */
       /* apply the move */
@@ -345,14 +362,28 @@ scale_normalize_DOS(void)
   }
   for(i=0;i<bins;i++){
     double val = gsl_histogram_get(g,i);
-    double tmp = log(val)+log(factor)-log(exp_G_norm);
+    double tmp = val+log(factor)-log(exp_G_norm);
     dos[i] = tmp;
   }
 
-  output_dos(dos, 'DOS');
-  
+  /* output dos */
+  //output_dos(dos, 'DOS');
+
+  /*
+    for(i=0;i<wanglandau_opt.bins;i++){
+    fprintf(stderr, %6.2
+  }
+  */
+  gsl_histogram_fprintf(stderr,g,"%6.3g","%6g");
   
   /* SECOND: normalize g */
+}
+
+/* ==== */
+static void
+output_dos(double *dos, char T)
+{
+  return;
 }
 
 /* ==== */
