@@ -1,6 +1,6 @@
 /*
    wl_rna.c RNA-related routines for Wang-Landau sampling
-   Last changed Time-stamp: <2014-06-26 15:48:09 mtw>
+   Last changed Time-stamp: <2014-07-02 16:00:10 mtw>
 */
 
 #include <stdio.h>
@@ -15,7 +15,7 @@
 #include "globals.h"
 #include "wl_rna.h"
 
-static void subopt_first_bin_RNA(float);
+static void subopt_of_lowest_bins_RNA(float);
 
 /* ==== */
 void
@@ -32,14 +32,16 @@ initialize_RNA (const char *seq)
   /* compute mfe */
   mfe = vrna_fold(vc,NULL);
   vrna_free_fold_compound(vc);
-  printf ("[[initialize_RNA()]]\nmfe = %6.2f\n",mfe);
+  if(wanglandau_opt.verbose){
+    printf ("[[initialize_RNA()]]\nmfe = %6.2f\n",mfe);
+  }
 }
 
 /* ==== */
 void
 pre_process_RNA(void)
 {
-  subopt_first_bin_RNA(wanglandau_opt.erange); 
+  subopt_of_lowest_bins_RNA(wanglandau_opt.erange); 
 }
 
 /* ==== */
@@ -51,21 +53,26 @@ post_process_RNA(void)
 
 /* ==== */
 static void
-subopt_first_bin_RNA(float e)
+subopt_of_lowest_bins_RNA(float e)
 {
   int strucs, have_lowest_bin;
   size_t i;
   SOLUTION *sol=NULL;
 
   have_lowest_bin = 0;
-  printf("[[subopt_first_bin()]]\ne=%g\n",e);
+  if(wanglandau_opt.verbose){
+    fprintf(stderr,"[[subopt_of_lowest_bins_RNA()]]\nq");
+    fprintf(stderr,"computing subopt -e %g\n",e);
+  }
+  /* compute suboptimal structures within energy range mfe+e */
   sol = subopt(wanglandau_opt.sequence, NULL, e*100, NULL);
   for (strucs = 0; sol[strucs].structure != NULL; strucs++){
-    gsl_histogram_find(h,sol[strucs].energy, &i);
+    gsl_histogram_find(s,sol[strucs].energy, &i);
     if (i == 0){have_lowest_bin=1;}
-    printf("%s %6.2f %d\n",sol[strucs].structure,sol[strucs].energy,i);
-    gsl_histogram_increment(h,sol[strucs].energy);
-     // TODO: so_structs[bin] += 1; ueber eigenes s histogram
+    if (wanglandau_opt.verbose){
+      printf("%s %6.2f %d\n",sol[strucs].structure,sol[strucs].energy,i);
+    }
+    gsl_histogram_increment(s,sol[strucs].energy);
     free(sol[strucs].structure);
   }
   free(sol);
@@ -74,6 +81,15 @@ subopt_first_bin_RNA(float e)
     fprintf(stderr,"Please decrease the number of bins for this simulation\n");
     fprintf(stderr,"exiting ...\n");
     exit(EXIT_FAILURE);
+  }
+
+  /* be verbose about the lowest-energy bins used for normalization */
+  if(wanglandau_opt.verbose){
+    fprintf(stderr,"histogram s (first bins required for normalization)\n");
+    for(i=0;i<wanglandau_opt.norm;i++){
+      double value = gsl_histogram_get(s,i);
+      fprintf(stderr,"s[%d]: %7g\n",i,value);
+    }
   }
     
 }

@@ -1,6 +1,6 @@
 /*
   wanglandau.c : main computation routines for Wang-Landau sampling
-  Last changed Time-stamp: <2014-07-02 00:11:03 mtw>
+  Last changed Time-stamp: <2014-07-02 16:56:36 mtw>
 
   Literature:
   Landau, PD and Tsai, S-H and Exler, M (2004) Am. J. Phys. 72:(10) 1294-1302
@@ -27,9 +27,10 @@
 
 /* functions */
 static void initialize_wl(void);
-static gsl_histogram *ini_histogram(const int,const double,const double);
 static void wl_montecarlo(char *);
+static void scale_normalize_DOS(void);
 static short histogram_is_flat(const gsl_histogram *);
+static gsl_histogram *ini_histogram(const int,const double,const double);
 
 /* variables */
 static int iterations = 0;       /* # of iterations (modifications with f) */
@@ -52,8 +53,10 @@ wanglandau(void)
   pre_process_model(); /* get normalization factor for histogram by
 			  populating the first bin */
   printf("[[wanlandau()]]\n");
-  gsl_histogram_fprintf(stderr,h,"%6.3g","%6g");
+  if(wanglandau_opt.verbose)
+    gsl_histogram_fprintf(stderr,h,"%6.3g","%6g");
   wl_montecarlo(wanglandau_opt.structure);
+  scale_normalize_DOS();
   post_process_model();
   return;
 }
@@ -63,10 +66,12 @@ static void
 initialize_wl(void)
 {
   int bins;
-  double lo, hi, hmin, hmax,erange;
+  double low,high,lo,hi,hmin,hmax,erange;
   
   srand(time(NULL));
-  printf("[[initialize_wl()]]\n");
+  if(wanglandau_opt.verbose){
+    printf("[[initialize_wl()]]\n");
+  }
   /* assign function pointers */
   initialize_model = initialize_RNA;  /* for RNA */
   pre_process_model  = pre_process_RNA;
@@ -75,28 +80,57 @@ initialize_wl(void)
   initialize_model(wanglandau_opt.sequence); /* set energy paramters for
 						current model; get mfe */
   hmin=floor(mfe);
-  hmax=5*fabs(mfe);
+  hmax=10*fabs(mfe);
   //printf ("-> mfe is %4.2f | hmin is %4.2f | hmax is %4.2f <-\n", mfe,hmin,hmax);
 
-  /* prepare histogram h */
+  /* prepare histogram h (holds energy levels seen in the current
+     iteration) */
   h = ini_histogram(wanglandau_opt.bins,(int)hmin,hmax);
-  // populate lowest bin with true DOS from subopt
-  gsl_histogram_get_range(h,0,&lo,&hi);
-  wanglandau_opt.erange=(float)fabs(mfe-hi+0.01);
-  printf("bin 1: %6.3g -- %6.3g wl_opt.erange=%6.3f\n",lo,hi,wanglandau_opt.erange);
-  //gsl_histogram_fprintf(stderr,h,"%6.3g","%6g");
   bins = gsl_histogram_bins(h);
-  fprintf(stderr, "histogram h allocated with %zu bins\n",bins);
-  
-  /* prepare histogram g */
+  if(wanglandau_opt.verbose){
+    fprintf(stderr, "histogram h allocated with %zu bins\n",bins);
+  }
+ 
+  /* prepare histogram g (holds estimation for DOS */
   g = ini_histogram(wanglandau_opt.bins,(int)hmin,hmax);
   bins = gsl_histogram_bins(g);
-  fprintf(stderr, "histogram g allocated with %d bins\n",bins);
+  if(wanglandau_opt.verbose){
+    fprintf(stderr, "histogram g allocated with %d bins\n",bins);
+  }
 
+  /* prepare histogram s (required for normalization) */
+  s = ini_histogram(wanglandau_opt.bins,(int)hmin,hmax);
+  bins = gsl_histogram_bins(s);
+  if(wanglandau_opt.verbose){
+    fprintf(stderr, "histogram s allocated with %d bins\n",bins);
+  }
+
+  dos = (double)caloc(wanglandau_opt.bins,sizeof(double));
+  assert(dos != NULL);
+  
+
+  /* get the energy range up to which we will compute true DOS via
+     RNAsubopt, which will be required later for normalization */
+  gsl_histogram_get_range(s,0,&lo,&hi);
+  low = lo;
+  gsl_histogram_get_range(s,(wanglandau_opt.norm-1),&lo,&hi);
+  high = hi;
+  wanglandau_opt.erange=(float)fabs(mfe-high+0.01);
+  if(wanglandau_opt.verbose){
+    printf("bins 0-%d: %6.3g -- %6.3g wl_opt.erange=%6.3f\n",
+	   (wanglandau_opt.norm-1),low,high,wanglandau_opt.erange);
+    gsl_histogram_fprintf(stderr,h,"%6.3g","%6g");
+  }
+  
   /* prepare gsl random-number generation */
   (void) clock_gettime(CLOCK_REALTIME, &ts);
-  seed =   ts.tv_sec ^ ts.tv_nsec;
-  printf("seed: %d\n",seed);
+  if(wanglandau_opt.seed_given){
+    seed = wanglandau_opt.seed;
+  }
+  else {
+    seed =   ts.tv_sec ^ ts.tv_nsec;
+  }
+  printf("initializing random seed: %d\n",seed);
   gsl_rng_env_setup();
   r = gsl_rng_alloc (gsl_rng_mt19937);
   gsl_rng_set( r, seed );
@@ -123,7 +157,6 @@ wl_montecarlo(char *struc)
   //printf(">%s<\n",str);
   e = vrna_eval_structure_pt(wanglandau_opt.sequence,pt,P);
   
-  fprintf(stderr, "trying to finding e=%6.2f in histogram g\n",(float)e/100);
   /* determine bin where the start structure goes */
   status = gsl_histogram_find(g,(float)e/100,&b1);
   if (status) {
@@ -210,11 +243,11 @@ wl_montecarlo(char *struc)
     if(steps % (wanglandau_opt.steps) == 0) {
       if( histogram_is_flat(h) ) {
 	lnf /= 2;
-	fprintf(stderr,"# histogram is flat  f=%12g steps=%20li ",lnf,steps);
+	fprintf(stderr,"# histogram is flat  f=%12g steps=%20li\n",lnf,steps);
 	gsl_histogram_reset(h);
       }
       else {
-	fprintf(stderr, "#lnf=%12g steps=%20li not flat ", lnf, steps);
+	fprintf(stderr, "#lnf=%12g steps=%20li not flat\n", lnf, steps);
       }
     }
   } /* end while */
@@ -242,8 +275,7 @@ histogram_is_flat(const gsl_histogram *z)
   size_t lbin,gbin;        /* lowest/greatest populated bin */
   int i,b=0,is_flat=1;
 
-  // get lowest populated bin
-  fprintf(stderr,"[[histogram_is_flat()]]\n");
+  /* get lowest populated bin */
   for (i=0; i<wanglandau_opt.bins; i++){
     val = gsl_histogram_get(z,i);
     if (val>0){
@@ -284,6 +316,44 @@ histogram_is_flat(const gsl_histogram *z)
   return is_flat;
 }
 
+/* ==== */
+static void
+scale_normalize_DOS(void)
+{
+  int i,maxbin;
+  size_t bins;
+  double  maxval=-1., sum=0., x=0, factor=0., GZero=0,  exp_G_norm=0.;
+
+  /* FIRST: scale g */
+  /* scale it via the ground state */
+  /* ln[gn(E)] = ln[g(E)]-ln[g(Egs)]+ln[Q] */
+  /* where Q is the # of structures found in the lowest bin/groundstate */
+
+  bins = gsl_histogram_bins(g);
+  /* get value of g[0] */
+  GZero = gsl_histogram_get(g,0);
+  for(i=0;i<wanglandau_opt.norm;i++){
+    double val = gsl_histogram_get(s,i);
+    factor += val;
+  }
+  /* subtract g[0] from each entry to get smaller numbers */
+  gsl_histogram_shift(g,(-1*GZero));
+
+  for(i=0;i<wanglandau_opt.norm;i++){
+    double val = gsl_histogram_get(g,i);
+    exp_G_norm += exp(val);
+  }
+  for(i=0;i<bins;i++){
+    double val = gsl_histogram_get(g,i);
+    double tmp = log(val)+log(factor)-log(exp_G_norm);
+    dos[i] = tmp;
+  }
+
+  output_dos(dos, 'DOS');
+  
+  
+  /* SECOND: normalize g */
+}
 
 /* ==== */
 void
@@ -305,6 +375,7 @@ wanglandau_free_memory(void)
   free(pt);
   free(s0);
   free(s1);
+  free(dos);
   free(wanglandau_opt.sequence);
   free(wanglandau_opt.structure);
   free(wanglandau_opt.basename);

@@ -1,6 +1,6 @@
 /*
   wl_options.c Command-line parsing for Wang-Landau sampling
-  Last changed Time-stamp: <2014-07-02 00:09:32 mtw>
+  Last changed Time-stamp: <2014-07-02 14:53:32 mtw>
 */
 
 #include <stdio.h>
@@ -54,16 +54,18 @@ process_commandline (int argc, char *argv[])
 static void
 ini_globals(void)
 {
-  wanglandau_opt.INFILE  = NULL;
-  wanglandau_opt.bins    = 30;
-  wanglandau_opt.ffinal  = 1e-7;
-  wanglandau_opt.flat    = 0.8;
-  wanglandau_opt.steps   = 1;
-  wanglandau_opt.T       = 37.0;
-  wanglandau_opt.erange  = -1;
-  wanglandau_opt.norm    = 1;
-  wanglandau_opt.verbose = 0;
-  wanglandau_opt.emax    = 99999999999999.;
+  wanglandau_opt.INFILE     = NULL;
+  wanglandau_opt.bins       = 30;
+  wanglandau_opt.ffinal     = 1e-7;
+  wanglandau_opt.flat       = 0.8;
+  wanglandau_opt.steps      = 100000;
+  wanglandau_opt.seed       = 123456789;
+  wanglandau_opt.seed_given = 0;
+  wanglandau_opt.T          = 37.0;
+  wanglandau_opt.erange     = -1;
+  wanglandau_opt.norm       = 1;
+  wanglandau_opt.verbose    = 0;
+  wanglandau_opt.emax       = 99999999999999.;
   wanglandau_opt.emax_given = 0;
 }
 
@@ -85,10 +87,25 @@ set_parameters(void)
       exit (EXIT_FAILURE);
     }
   }
-
+  
   if (args_info.steps_given){
     if( (wanglandau_opt.steps = args_info.steps_arg) <= 0 ){
       fprintf(stderr, "Value of --steps must be > 0\n");
+      exit (EXIT_FAILURE);
+    }
+  }
+  
+  if (args_info.seed_given){
+    wanglandau_opt.seed_given = 1;
+    if( (wanglandau_opt.seed = args_info.seed_arg) <= 0 ){
+      fprintf(stderr, "Value of --seed must be > 0\n");
+      exit (EXIT_FAILURE);
+    }
+  }
+  
+  if(args_info.mod_given){
+    if( (wanglandau_opt.ffinal = args_info.mod_arg) < 1e-15 ){
+      fprintf(stderr, "Value of -f must be > 1e-15 \n");
       exit (EXIT_FAILURE);
     }
   }
@@ -99,10 +116,17 @@ set_parameters(void)
       exit (EXIT_FAILURE);
     }
   }
-
+  
   if(args_info.emax_given){
     wanglandau_opt.emax = args_info.emax_arg;
     wanglandau_opt.emax_given = 1;
+  }
+
+  if (args_info.norm_given){
+    if( (wanglandau_opt.norm = args_info.norm_arg) < 2){
+      fprintf(stderr, "Value of --norm must be >= 2 \n");
+      exit (EXIT_FAILURE);
+    }
   }
   
   if (args_info.verbose_given)   wanglandau_opt.verbose = 1;
@@ -120,17 +144,21 @@ display_settings(void)
 {
   fprintf(stderr, "Settings:\n");
   fprintf(stderr,
-	  "-f        = %g\n"
-	  "--flat    = %g\n"
 	  "--bins    = %d\n"
-	  "--steps   = %lu\n"
 	  "--emax    = %g\n"
+	  "--ffinal  = %g\n"
+	  "--flat    = %g\n"
+	  "--norm    = %d\n"
+	  "--seed    = %lu\n"
+	  "--steps   = %lu\n"
 	  "--Temp    = %4.2f\n",
+	  wanglandau_opt.bins,
+	  wanglandau_opt.emax,
 	  wanglandau_opt.ffinal,
 	  wanglandau_opt.flat,
-	  wanglandau_opt.bins,
+	  wanglandau_opt.norm,
+	  wanglandau_opt.seed,
 	  wanglandau_opt.steps,
-	  wanglandau_opt.emax,
 	  wanglandau_opt.T);
 }
 

@@ -1,6 +1,6 @@
 /*
   globals.h : global definitions for Wang-Landau sampling
-  Last changed Time-stamp: <2014-07-01 17:12:09 mtw>
+  Last changed Time-stamp: <2014-07-02 16:54:48 mtw>
 */
 
 #ifndef GLOBALS_H
@@ -12,7 +12,11 @@
 
 /* variables/arrays */
 float mfe;
-gsl_histogram *h;     /* histogram */
+gsl_histogram *h;    /* histogram of energies seen in current iteration */
+gsl_histogram *s;    /* true DOS of the lowest energy range (if
+			available); required for normalization, which
+			is computed based on the lowest-energy bins */
+double *dos;         /* scaled and normalized DOS */
 
 /* function pointers */
 void  (*pre_process_model)(void);
