@@ -1,4 +1,4 @@
-/* Last changed Time-stamp: <2014-07-02 12:16:26 mtw> */
+/* Last changed Time-stamp: <2014-07-03 16:04:10 mtw> */
 
 #ifndef WL_OPTIONS_H
 #define WL_OPTIONS_H
@@ -20,9 +20,12 @@ typedef struct _options {
   float T;             /* fold temperature */
   float erange;        /* energy range for subopt */
   int norm;            /* # of normalization-bins */
-  double emax;         /* upper energy bound for sampling */
-  int emax_given;      /* whether emax was given at the command line */
+  double max;          /* upper energy bound of sampling range */
+  int max_given;       /* whether max was given at the command line */
+  double res;          /* histogram bin width */
+  int res_given;       /* whether res was given at the command line */
   int verbose;         /* be verbose */
+  int debug;           /* debug mode */
 } options;
 
 options wanglandau_opt;

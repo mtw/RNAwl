@@ -1,11 +1,25 @@
 /*
   wanglandau.c : main computation routines for Wang-Landau sampling
-  Last changed Time-stamp: <2014-07-03 00:27:55 mtw>
+  Last changed Time-stamp: <2014-07-03 18:08:12 mtw>
 
   Literature:
   Landau, PD and Tsai, S-H and Exler, M (2004) Am. J. Phys. 72:(10) 1294-1302
   A new approach to Monte Carlo simulations in statistical physics:
   Wang-Landau sampling
+*/
+
+
+/*
+TODO
+
+- output_dos fertig machen
+
+- output current DOS estimation after 1 million * 10^(1/4) steps until
+100 million steps are reached (do not stop at f=1e-8)
+
+- relative error (siehe original-Paper) einbauen und fuer jede Ausgabe
+  der geschaetzten DOS ausgeben
+
 */
 
 #include <stdio.h>
@@ -31,19 +45,19 @@ static void wl_montecarlo(char *);
 static void scale_normalize_DOS(void);
 static void output_dos(double *dos, char T);
 static short histogram_is_flat(const gsl_histogram *);
-static gsl_histogram *ini_histogram(const int,const double,const double);
+static gsl_histogram *ini_histogram_uniform(const int,const double,const double);
 
 /* variables */
-static int iterations = 0;       /* # of iterations (modifications with f) */
-static int maxbin = -1;          /* index of highest bin */
-static unsigned long steps = 0;  /* # of WL steps */
-static unsigned long seed;       /* random seed */
-static gsl_rng *r = NULL;        /* GSL random number generator */
-static struct timespec ts;       /* timespec struct needed for random seed */
-static double rnum;              /* random number */
+static int iterations = 0;    /* #iterations (modifications with f) */
+static int maxbin = -1;       /* index of highest bin */
+static unsigned long steps = 0; /* # of WL steps */
+static unsigned long seed;    /* random seed */
+static gsl_rng *r = NULL;     /* GSL random number generator */
+static struct timespec ts;    /* timespec struct for random seed */
+static double rnum;           /* random number */
 
 /* arrays */
-gsl_histogram *g = NULL;         /* DoS histogram */
+static gsl_histogram *g = NULL;  /* DoS histogram */
 static char *out_prefix=NULL;    /* prefix for output */
 
 /* ==== */
@@ -70,7 +84,7 @@ static void
 initialize_wl(void)
 {
   int bins;
-  double low,high,lo,hi,hmin,hmax,erange;
+  double low,high,lo,hi,hmin,hmax,erange,*range = NULL;
   
   srand(time(NULL));
   if(wanglandau_opt.verbose){
@@ -80,36 +94,58 @@ initialize_wl(void)
   initialize_model = initialize_RNA;  /* for RNA */
   pre_process_model  = pre_process_RNA;
   post_process_model = post_process_RNA;
+  
+  /* set energy paramters for current model; compute mfe */
+  initialize_model(wanglandau_opt.sequence); 
 
-  initialize_model(wanglandau_opt.sequence); /* set energy paramters for
-						current model; get mfe */
-  //hmin=floor(mfe);
-  hmin=mfe-0.10001;
-  hmax=5*fabs(mfe);
-  /*printf ("-> mfe is %4.2f | hmin is %4.2f | hmax is %4.2f <-\n",
-    mfe,hmin,hmax); */
+  range = (double*)calloc((wanglandau_opt.bins+1), sizeof(double));
+  assert(range!=NULL);
 
-  /* prepare histogram h (holds energy levels seen in the current
-     iteration) */
-  h = ini_histogram(wanglandau_opt.bins,(int)hmin,hmax);
-  bins = gsl_histogram_bins(h);
-  if(wanglandau_opt.verbose){
-    fprintf(stderr, "histogram h allocated with %zu bins\n",bins);
+  /* initialize histograms */
+  hmin=mfe;
+  if(wanglandau_opt.res_given){ /* determine histogram ranges manually */
+    int i;
+    range[0]=mfe;
+    for(i=1;i<=wanglandau_opt.bins;i++){
+      range[i]=range[i-1]+wanglandau_opt.res;
+    }
+    /* info output */
+    fprintf(stderr,"#allocating %lu bins of width %g\n",
+	    wanglandau_opt.bins,wanglandau_opt.res);
+    fprintf(stderr,"#histogram ranges:\n");
+    for(i=0;i<=wanglandau_opt.bins;i++){
+      fprintf(stderr, "%6.2f ",range[i]);
+    }
+    fprintf(stderr,"\n");
+    
+  
+    if(wanglandau_opt.max_given){
+      hmax=wanglandau_opt.max;
+    }
+    else{
+      wanglandau_opt.max=range[wanglandau_opt.bins]; /* the last element */
+      hmax=wanglandau_opt.max;
+    }
+    h = gsl_histogram_alloc(wanglandau_opt.bins);
+    g = gsl_histogram_alloc(wanglandau_opt.bins);
+    s = gsl_histogram_alloc(wanglandau_opt.bins);
+    gsl_histogram_set_ranges(h,range,(wanglandau_opt.bins+1));
+    gsl_histogram_set_ranges(g,range,(wanglandau_opt.bins+1));
+    gsl_histogram_set_ranges(s,range,(wanglandau_opt.bins+1));
   }
- 
-  /* prepare histogram g (holds estimation for DOS */
-  g = ini_histogram(wanglandau_opt.bins,(int)hmin,hmax);
-  bins = gsl_histogram_bins(g);
-  if(wanglandau_opt.verbose){
-    fprintf(stderr, "histogram g allocated with %d bins\n",bins);
+  else{  /* determine histogram ranges automatically */
+    if(wanglandau_opt.max_given){
+      hmax = wanglandau_opt.max;
+    }
+    else{
+      hmax=20*fabs(mfe);
+    }
+    h = ini_histogram_uniform(wanglandau_opt.bins,hmin,hmax);
+    g = ini_histogram_uniform(wanglandau_opt.bins,hmin,hmax);
+    s = ini_histogram_uniform(wanglandau_opt.bins,hmin,hmax);
   }
-
-  /* prepare histogram s (required for normalization) */
-  s = ini_histogram(wanglandau_opt.bins,(int)hmin,hmax);
-  bins = gsl_histogram_bins(s);
-  if(wanglandau_opt.verbose){
-    fprintf(stderr, "histogram s allocated with %d bins\n",bins);
-  }
+  fprintf (stderr, "# sampling energy range is %6.2f - %6.2f\n",
+	   hmin,hmax); 
 
   dos = (double*)calloc(wanglandau_opt.bins,sizeof(double));
   assert(dos != NULL);
@@ -141,6 +177,7 @@ initialize_wl(void)
   r = gsl_rng_alloc (gsl_rng_mt19937);
   gsl_rng_set( r, seed );
 
+  free(range);
   return;
 }
 
@@ -148,11 +185,13 @@ initialize_wl(void)
 static void
 wl_montecarlo(char *struc)
 {
+  move_str m;
   short *pt=NULL;
   int e,enew,emove,eval_me,status,debug=1;
-  double g_b1,g_b2,prob,lnf = 1;   /* logarithmic modification parameter f */
-  size_t b1,b2;                    /* indices in g/h corresponding to old/new energies */
-  move_str m;
+  double g_b1,g_b2,prob,lnf = 1.;  /* log modification parameter f */
+  size_t b1,b2;                    /* indices in g/h corresponding to
+				      old/new energies */
+ 
 
   eval_me = 1; /* paranoid checking of neighbors against RNAeval */
   if (wanglandau_opt.verbose){
@@ -174,17 +213,37 @@ wl_montecarlo(char *struc)
     exit(EXIT_FAILURE);
   }
   printf("%s\n", wanglandau_opt.sequence);
-  print_str(stdout,pt);printf(" %6.2f bin:%d\n",(float)e/100,b1);
+  print_str(stdout,pt);printf("(%6.2f) bin:%d\n",(float)e/100,b1);
   if (wanglandau_opt.verbose){
-    fprintf(stderr,"Starting MC loop ...\n");
+    fprintf(stderr,"\nStarting MC loop ...\n");
   }
   while (lnf > wanglandau_opt.ffinal) {
+    if(wanglandau_opt.debug){
+      fprintf(stderr,"==================\n");
+      fprintf(stderr,"in while: lnf=%8.6f\n",lnf);
+      print_str(stdout,pt);printf(" (%6.2f) bin:%d\n",(float)e/100,b1);
+      mtw_dump_pt(pt);
+    }
     /* make a random move */
-    m = get_random_move_pt(wanglandau_opt.sequence,pt,wanglandau_opt.verbose);
+    m = get_random_move_pt(wanglandau_opt.sequence,pt);
     /* compute energy difference for this move */
     emove = vrna_eval_move_pt(pt,s0,s1,m.left,m.right,P);
     /* evaluate energy of the new structure */
     enew = e + emove;
+    if(wanglandau_opt.debug){
+      fprintf(stderr,
+	      "random move: left %i right %i enew(%6.4f)=e(%6.4f)+emove(%6.4f)\n",
+	      m.left,m.right,(float)enew/100,(float)e/100,(float)emove/100);
+    }
+
+    /* ensure the new energy is ithin our sampling region */
+    if ((float)enew/100 >= wanglandau_opt.max){
+      fprintf(stderr,
+	      "New structure has energy %6.2f >= %6.2f (upper energy bound)\n",
+	      (float)enew/100,wanglandau_opt.max);
+      fprintf(stderr,"Please increase --bins or adjust --max! Exiting ...\n");
+      exit(EXIT_FAILURE);
+    }
     /* determine bin where the new structure goes */
     status = gsl_histogram_find(g,(float)enew/100,&b2);
     if (status) {
@@ -194,35 +253,51 @@ wl_montecarlo(char *struc)
       else {fprintf(stderr, "GSL error: gsl_errno=%d\n",status);}
       exit(EXIT_FAILURE);
     }
+
+    if(wanglandau_opt.debug){
+      fprintf(stderr,"steps: %d\n",steps);
+    }
     steps++;  /* # of MC steps performed so far */
+
+    if(steps == 5000000){
+       gsl_histogram_fprintf(stderr,g,"%6.2f","%30.6f");
+       exit(100);
+       
+    }
     /* lookup current values for bins b1 and b2 */
-    if (debug == 1){
-      fprintf(stderr,"==================\n");
-      gsl_histogram_fprintf(stderr,g,"%6.3g","%8.6g");
+    if (wanglandau_opt.debug){
+      fprintf(stderr,"current histogram g:\n");
+      gsl_histogram_fprintf(stderr,g,"%6.2f","30.6f");
       fprintf(stderr,"\n");
     }
     g_b1 = gsl_histogram_get(g,b1);
     g_b2 = gsl_histogram_get(g,b2);
-    if(debug ==1){
+    /*
+      if(debug ==1){
       fprintf(stderr,"b1=%i g_b1: %6.2f | b2=%i g_b2: %6.2f\n",b1,g_b1,b2,g_b2);
-    }
+      }
+    */
     
     /* core MC steps */
     prob = MIN2(exp(g_b1 - g_b2), 1.0);
     rnum =  gsl_rng_uniform (r);
     /* if(wanglandau_opt.verbose){ printf ("rnum is %.5f\n", rnum); }*/
     
-    if ((prob == 1 || (rnum <= prob)) ) { /* accept the move */
-      /* apply the move */
+    if ((prob == 1 || (rnum <= prob)) ) { /* accept & apply the move */
       apply_move_pt(pt,m);
-      /* fprintf(stderr, "accepting %s %6.4f\n", neighbor, e); */
-      //mtw_dump_pt(pt);
+      if(wanglandau_opt.debug){
+	print_str(stdout,pt);printf(" %6.2f bin:%d [A]\n",(float)enew/100,b2);
+      }
       b1 = b2;
       e = enew;
     }
     else { /* reject the move */
-      ;
+      if(wanglandau_opt.debug){
+	print_str(stdout,pt);printf(" %6.2f bin:%d [R]\n",(float)enew/100,b2);
+       }
+      
     }
+    
     /* update histogram h */
     status = gsl_histogram_increment(h,(float)e/100);
     if (status) {
@@ -261,6 +336,8 @@ wl_montecarlo(char *struc)
       if( histogram_is_flat(h) ) {
 	lnf /= 2;
 	fprintf(stderr,"# histogram is flat  f=%12g steps=%20li\n",lnf,steps);
+	fprintf(stderr,"estimated g\n");
+	gsl_histogram_fprintf(stderr,g,"%6.2f","%20.6f");
 	gsl_histogram_reset(h);
       }
       else {
@@ -275,9 +352,9 @@ wl_montecarlo(char *struc)
 
 /* ==== */
 static gsl_histogram *
-ini_histogram(const int n,
-	      const double min,
-	      const double max)
+ini_histogram_uniform(const int n,
+		      const double min,
+		      const double max)
 {
   gsl_histogram *a = gsl_histogram_alloc(n);
   gsl_histogram_set_ranges_uniform(a,min,max);
@@ -354,7 +431,7 @@ scale_normalize_DOS(void)
     factor += val;
   }
   /* subtract g[0] from each entry to get smaller numbers */
-  gsl_histogram_shift(g,(-1*GZero));
+  // gsl_histogram_shift(g,(-1*GZero));
 
   for(i=0;i<wanglandau_opt.norm;i++){
     double val = gsl_histogram_get(g,i);
@@ -374,7 +451,7 @@ scale_normalize_DOS(void)
     fprintf(stderr, %6.2
   }
   */
-  gsl_histogram_fprintf(stderr,g,"%6.3g","%6g");
+  gsl_histogram_fprintf(stderr,g,"%6.2f","%30.6f");
   
   /* SECOND: normalize g */
 }

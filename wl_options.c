@@ -1,6 +1,6 @@
 /*
   wl_options.c Command-line parsing for Wang-Landau sampling
-  Last changed Time-stamp: <2014-07-02 14:53:32 mtw>
+  Last changed Time-stamp: <2014-07-03 18:09:32 mtw>
 */
 
 #include <stdio.h>
@@ -55,18 +55,20 @@ static void
 ini_globals(void)
 {
   wanglandau_opt.INFILE     = NULL;
-  wanglandau_opt.bins       = 30;
+  wanglandau_opt.bins       = 100;
   wanglandau_opt.ffinal     = 1e-7;
   wanglandau_opt.flat       = 0.8;
+  wanglandau_opt.res        = 0.5;         /* kcal/mol */
   wanglandau_opt.steps      = 100000;
   wanglandau_opt.seed       = 123456789;
   wanglandau_opt.seed_given = 0;
   wanglandau_opt.T          = 37.0;
   wanglandau_opt.erange     = -1;
   wanglandau_opt.norm       = 1;
+  wanglandau_opt.max        = 99999999999999.;
+  wanglandau_opt.max_given  = 0;
   wanglandau_opt.verbose    = 0;
-  wanglandau_opt.emax       = 99999999999999.;
-  wanglandau_opt.emax_given = 0;
+  wanglandau_opt.debug      = 0;
 }
 
 /* ==== */
@@ -80,7 +82,15 @@ set_parameters(void)
       exit (EXIT_FAILURE);
     }
   }
-  
+
+   if(args_info.resolution_given){
+     wanglandau_opt.res_given = 1;
+    if( (wanglandau_opt.res = args_info.resolution_arg) < 0.1 ){
+      fprintf(stderr, "Value of --resolution must be >= 0.1 \n");
+      exit (EXIT_FAILURE);
+    }
+  }
+   
   if (args_info.bins_given){
     if( (wanglandau_opt.bins = args_info.bins_arg) <= 0 ){
       fprintf(stderr, "Value of --bins must be > 0\n");
@@ -117,9 +127,9 @@ set_parameters(void)
     }
   }
   
-  if(args_info.emax_given){
-    wanglandau_opt.emax = args_info.emax_arg;
-    wanglandau_opt.emax_given = 1;
+  if(args_info.max_given){
+    wanglandau_opt.max = args_info.max_arg;
+    wanglandau_opt.max_given = 1;
   }
 
   if (args_info.norm_given){
@@ -129,7 +139,8 @@ set_parameters(void)
     }
   }
   
-  if (args_info.verbose_given)   wanglandau_opt.verbose = 1;
+  if (args_info.verbose_given){wanglandau_opt.verbose = 1;}
+  if (args_info.debug_given){wanglandau_opt.debug = 1;}
   
   if (args_info.info_given){
     display_settings();
@@ -145,21 +156,27 @@ display_settings(void)
   fprintf(stderr, "Settings:\n");
   fprintf(stderr,
 	  "--bins    = %d\n"
-	  "--emax    = %g\n"
+	  "--max     = %g\n"
 	  "--ffinal  = %g\n"
 	  "--flat    = %g\n"
 	  "--norm    = %d\n"
+	  "--res     = %g\n"
 	  "--seed    = %lu\n"
 	  "--steps   = %lu\n"
-	  "--Temp    = %4.2f\n",
+	  "--Temp    = %4.2f\n"
+	  "--verbose = %i\n"
+	  "--debug   = %i\n",
 	  wanglandau_opt.bins,
-	  wanglandau_opt.emax,
+	  wanglandau_opt.max,
 	  wanglandau_opt.ffinal,
 	  wanglandau_opt.flat,
 	  wanglandau_opt.norm,
+	  wanglandau_opt.res,
 	  wanglandau_opt.seed,
 	  wanglandau_opt.steps,
-	  wanglandau_opt.T);
+	  wanglandau_opt.T,
+	  wanglandau_opt.verbose,
+	  wanglandau_opt.debug);
 }
 
 

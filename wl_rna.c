@@ -1,6 +1,6 @@
 /*
    wl_rna.c RNA-related routines for Wang-Landau sampling
-   Last changed Time-stamp: <2014-07-02 16:00:10 mtw>
+   Last changed Time-stamp: <2014-07-03 11:11:55 mtw>
 */
 
 #include <stdio.h>
@@ -55,7 +55,7 @@ post_process_RNA(void)
 static void
 subopt_of_lowest_bins_RNA(float e)
 {
-  int strucs, have_lowest_bin;
+  int strucs, have_lowest_bin,status;
   size_t i;
   SOLUTION *sol=NULL;
 
@@ -67,7 +67,14 @@ subopt_of_lowest_bins_RNA(float e)
   /* compute suboptimal structures within energy range mfe+e */
   sol = subopt(wanglandau_opt.sequence, NULL, e*100, NULL);
   for (strucs = 0; sol[strucs].structure != NULL; strucs++){
-    gsl_histogram_find(s,sol[strucs].energy, &i);
+    status = gsl_histogram_find(s,sol[strucs].energy, &i);
+    if (status) {
+      if (status == GSL_EDOM){
+	printf ("error: %s\n", gsl_strerror (status));
+      }
+      else {fprintf(stderr, "GSL error: gsl_errno=%d\n",status);}
+      exit(EXIT_FAILURE);
+    }
     if (i == 0){have_lowest_bin=1;}
     if (wanglandau_opt.verbose){
       printf("%s %6.2f %d\n",sol[strucs].structure,sol[strucs].energy,i);
@@ -77,15 +84,18 @@ subopt_of_lowest_bins_RNA(float e)
   }
   free(sol);
   if (have_lowest_bin != 1){
-    fprintf(stderr,"Lowest bin has not been populated in subopt_first_bin()\n");
-    fprintf(stderr,"Please decrease the number of bins for this simulation\n");
+    fprintf(stderr,
+	    "Lowest bin has not been populated in subopt_first_bin()\n");
+    fprintf(stderr,
+	    "Please decrease the number of bins for this simulation\n");
     fprintf(stderr,"exiting ...\n");
     exit(EXIT_FAILURE);
   }
 
   /* be verbose about the lowest-energy bins used for normalization */
   if(wanglandau_opt.verbose){
-    fprintf(stderr,"histogram s (first bins required for normalization)\n");
+    fprintf(stderr,
+	    "histogram s (first bins required for normalization)\n");
     for(i=0;i<wanglandau_opt.norm;i++){
       double value = gsl_histogram_get(s,i);
       fprintf(stderr,"s[%d]: %7g\n",i,value);

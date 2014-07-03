@@ -46,20 +46,29 @@ struct gengetopt_args_info
   int bins_arg;	/**< @brief Number of (equidistant) histogram bins.  */
   char * bins_orig;	/**< @brief Number of (equidistant) histogram bins original value given at command line.  */
   const char *bins_help; /**< @brief Number of (equidistant) histogram bins help description.  */
-  double emax_arg;	/**< @brief Upper energy bound for sampling.  */
-  char * emax_orig;	/**< @brief Upper energy bound for sampling original value given at command line.  */
-  const char *emax_help; /**< @brief Upper energy bound for sampling help description.  */
+  double elow_arg;	/**< @brief Lower limit of sampling window (currently n/a).  */
+  char * elow_orig;	/**< @brief Lower limit of sampling window (currently n/a) original value given at command line.  */
+  const char *elow_help; /**< @brief Lower limit of sampling window (currently n/a) help description.  */
+  double ehigh_arg;	/**< @brief Upper limit of sampling window (currently n/a).  */
+  char * ehigh_orig;	/**< @brief Upper limit of sampling window (currently n/a) original value given at command line.  */
+  const char *ehigh_help; /**< @brief Upper limit of sampling window (currently n/a) help description.  */
   float flat_arg;	/**< @brief Flatness criterion for the histogram.  */
   char * flat_orig;	/**< @brief Flatness criterion for the histogram original value given at command line.  */
   const char *flat_help; /**< @brief Flatness criterion for the histogram help description.  */
   int info_flag;	/**< @brief Show settings (default=off).  */
   const char *info_help; /**< @brief Show settings help description.  */
+  double max_arg;	/**< @brief Upper energy bound for sampling.  */
+  char * max_orig;	/**< @brief Upper energy bound for sampling original value given at command line.  */
+  const char *max_help; /**< @brief Upper energy bound for sampling help description.  */
   double mod_arg;	/**< @brief Final value of Wang-Landau modification factor.  */
   char * mod_orig;	/**< @brief Final value of Wang-Landau modification factor original value given at command line.  */
   const char *mod_help; /**< @brief Final value of Wang-Landau modification factor help description.  */
   int norm_arg;	/**< @brief Number of bins used for normalization.  */
   char * norm_orig;	/**< @brief Number of bins used for normalization original value given at command line.  */
   const char *norm_help; /**< @brief Number of bins used for normalization help description.  */
+  double resolution_arg;	/**< @brief Sampling resolution (histogram bin width) (default='0.5').  */
+  char * resolution_orig;	/**< @brief Sampling resolution (histogram bin width) original value given at command line.  */
+  const char *resolution_help; /**< @brief Sampling resolution (histogram bin width) help description.  */
   #ifdef HAVE_LONG_LONG
   long long int steps_arg;	/**< @brief Number of Wang-Landau steps before histogram is checked for flatness.  */
   #else
@@ -75,19 +84,25 @@ struct gengetopt_args_info
   const char *Temp_help; /**< @brief Temperatur in Celsius help description.  */
   int verbose_flag;	/**< @brief Verbose output (default=off).  */
   const char *verbose_help; /**< @brief Verbose output help description.  */
+  int debug_flag;	/**< @brief Debugging output (default=off).  */
+  const char *debug_help; /**< @brief Debugging output help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
   unsigned int bins_given ;	/**< @brief Whether bins was given.  */
-  unsigned int emax_given ;	/**< @brief Whether emax was given.  */
+  unsigned int elow_given ;	/**< @brief Whether elow was given.  */
+  unsigned int ehigh_given ;	/**< @brief Whether ehigh was given.  */
   unsigned int flat_given ;	/**< @brief Whether flat was given.  */
   unsigned int info_given ;	/**< @brief Whether info was given.  */
+  unsigned int max_given ;	/**< @brief Whether max was given.  */
   unsigned int mod_given ;	/**< @brief Whether mod was given.  */
   unsigned int norm_given ;	/**< @brief Whether norm was given.  */
+  unsigned int resolution_given ;	/**< @brief Whether resolution was given.  */
   unsigned int steps_given ;	/**< @brief Whether steps was given.  */
   unsigned int seed_given ;	/**< @brief Whether seed was given.  */
   unsigned int Temp_given ;	/**< @brief Whether Temp was given.  */
   unsigned int verbose_given ;	/**< @brief Whether verbose was given.  */
+  unsigned int debug_given ;	/**< @brief Whether debug was given.  */
 
   char **inputs ; /**< @brief unamed options (options without names) */
   unsigned inputs_num ; /**< @brief unamed options number */

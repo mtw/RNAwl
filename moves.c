@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <math.h>
 #include "globals.h"
+#include "wl_options.h"
 #include "moves.h"
 #include <ViennaRNA/move_set.h>
 
@@ -20,21 +21,17 @@ void mtw_dump_pt(const short*);
   returns move operations to be applied to pt in order to perform the move
  */
 move_str
-get_random_move_pt(const char *seq, const short int *pt,int verbose)
+get_random_move_pt(const char *seq, const short int *pt)
 {
   move_str r,*mvs=NULL;
-  int i,count,debug=0;
+  int i,count;
   
   count = construct_moves_new((const char *)seq,pt,1,&mvs);
-  
-  if (debug==1){
-    /*
+  /*
     for (i = 0; i<count; i++) {  
-      printf("%d %d\n", mvs[i].left, mvs[i].right);
+    printf("%d %d\n", mvs[i].left, mvs[i].right);
     }
-    */
-    printf ("++ applying move: left %i right %i\n",mvs[0].left,mvs[0].right);
-  }
+  */
   
   r.left  = mvs[0].left;
   r.right = mvs[0].right;
