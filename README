@@ -9,5 +9,5 @@ Histograms are allocated to uniformly cover the sampling range per
 default. If you would like to have more fine-grained control over the
 histogram layout, you can provide a custom bin width via the --resolution
 option. The sampling range will then be computed as <resolution> * <bins>,
-ie. the upper bound of the sampling rang is then computed as <mfe> +
+i.e. the upper bound of the sampling range is then computed as <mfe> +
 <resolution> * <bins>.

@@ -1,4 +1,4 @@
-/* Last changed Time-stamp: <2014-07-03 16:04:10 mtw> */
+/* Last changed Time-stamp: <2014-07-14 16:24:54 mtw> */
 
 #ifndef WL_OPTIONS_H
 #define WL_OPTIONS_H
@@ -7,7 +7,8 @@
 
 typedef struct _options {
   FILE *INFILE;        /* input file */
-  char *basename;       /* base name of processed file */
+  char *basename;      /* base name of processed file */
+  long int checksteps; /* wl steps before histogram is checked for flatness */
   char *sequence;      /* sequence */
   char *structure;     /* start structure */
   int len;             /* sequence length */
@@ -16,7 +17,7 @@ typedef struct _options {
   float flat;          /* flatness criterion */
   long int seed;       /* seed for random number generator */
   int seed_given;      /* whether seed was given at the command line */
-  long int steps;      /* wl steps before histogram is checked for flatness */
+  long int steplimit;  /* maximum number of MC steps to perform */
   float T;             /* fold temperature */
   float erange;        /* energy range for subopt */
   int norm;            /* # of normalization-bins */

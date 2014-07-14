@@ -25,30 +25,31 @@
 
 #include "wl_cmdline.h"
 
-const char *gengetopt_args_info_purpose = "Estimate the Density of States by a Wang-Landau MC simulation";
+const char *gengetopt_args_info_purpose = "Sample the Density of States by a Wang-Landau MC simulation";
 
 const char *gengetopt_args_info_usage = "Usage: " CMDLINE_PARSER_PACKAGE " [OPTIONS]... [FILES]...";
 
 const char *gengetopt_args_info_description = "";
 
 const char *gengetopt_args_info_help[] = {
-  "  -h, --help               Print help and exit",
-  "  -V, --version            Print version and exit",
+  "  -h, --help                 Print help and exit",
+  "  -V, --version              Print version and exit",
   "\nGeneral options:",
-  "  -b, --bins=INT           Number of (equidistant) histogram bins",
-  "      --elow=DOUBLE        Lower limit of sampling window (currently n/a)",
-  "      --ehigh=DOUBLE       Upper limit of sampling window (currently n/a)",
-  "  -l, --flat=FLOAT         Flatness criterion for the histogram",
-  "      --info               Show settings  (default=off)",
-  "  -m, --max=DOUBLE         Upper energy bound for sampling",
-  "  -f, --mod=DOUBLE         Final value of Wang-Landau modification factor",
-  "  -n, --norm=INT           Number of bins used for normalization",
-  "  -r, --resolution=DOUBLE  Sampling resolution (histogram bin width)  \n                             (default=`0.5')",
-  "  -s, --steps=LONGLONG     Number of Wang-Landau steps before histogram is \n                             checked for flatness",
-  "  -S, --seed=LONG          Seed for random number generation",
-  "  -T, --Temp=FLOAT         Temperatur in Celsius",
-  "  -v, --verbose            Verbose output  (default=off)",
-  "  -d, --debug              Debugging output  (default=off)",
+  "  -b, --bins=INT             Number of (equidistant) histogram bins",
+  "  -c, --checksteps=LONGLONG  Number of Wang-Landau steps before histogram is \n                               checked for flatness  (default=`100000')",
+  "      --elow=DOUBLE          Lower limit of sampling window (currently n/a)",
+  "      --ehigh=DOUBLE         Upper limit of sampling window (currently n/a)",
+  "      --flat=FLOAT           Flatness criterion for the histogram",
+  "      --info                 Show settings  (default=off)",
+  "  -m, --max=DOUBLE           Upper energy bound for sampling",
+  "  -f, --mod=DOUBLE           Final value of Wang-Landau modification factor",
+  "  -n, --norm=INT             Number of bins used for normalization",
+  "  -r, --resolution=DOUBLE    Sampling resolution (histogram bin width)  \n                               (default=`0.5')",
+  "  -l, --steplimit=LONGLONG   Maximum number of MC steps to perform  \n                               (default=`100000000')",
+  "  -S, --seed=LONG            Seed for random number generation",
+  "  -T, --Temp=FLOAT           Temperatur in Celsius",
+  "  -v, --verbose              Verbose output  (default=off)",
+  "  -d, --debug                Debugging output  (default=off)",
     0
 };
 
@@ -80,6 +81,7 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->help_given = 0 ;
   args_info->version_given = 0 ;
   args_info->bins_given = 0 ;
+  args_info->checksteps_given = 0 ;
   args_info->elow_given = 0 ;
   args_info->ehigh_given = 0 ;
   args_info->flat_given = 0 ;
@@ -88,7 +90,7 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->mod_given = 0 ;
   args_info->norm_given = 0 ;
   args_info->resolution_given = 0 ;
-  args_info->steps_given = 0 ;
+  args_info->steplimit_given = 0 ;
   args_info->seed_given = 0 ;
   args_info->Temp_given = 0 ;
   args_info->verbose_given = 0 ;
@@ -100,6 +102,8 @@ void clear_args (struct gengetopt_args_info *args_info)
 {
   FIX_UNUSED (args_info);
   args_info->bins_orig = NULL;
+  args_info->checksteps_arg = 100000;
+  args_info->checksteps_orig = NULL;
   args_info->elow_orig = NULL;
   args_info->ehigh_orig = NULL;
   args_info->flat_orig = NULL;
@@ -109,7 +113,8 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->norm_orig = NULL;
   args_info->resolution_arg = 0.5;
   args_info->resolution_orig = NULL;
-  args_info->steps_orig = NULL;
+  args_info->steplimit_arg = 100000000;
+  args_info->steplimit_orig = NULL;
   args_info->seed_orig = NULL;
   args_info->Temp_orig = NULL;
   args_info->verbose_flag = 0;
@@ -125,19 +130,20 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->help_help = gengetopt_args_info_help[0] ;
   args_info->version_help = gengetopt_args_info_help[1] ;
   args_info->bins_help = gengetopt_args_info_help[3] ;
-  args_info->elow_help = gengetopt_args_info_help[4] ;
-  args_info->ehigh_help = gengetopt_args_info_help[5] ;
-  args_info->flat_help = gengetopt_args_info_help[6] ;
-  args_info->info_help = gengetopt_args_info_help[7] ;
-  args_info->max_help = gengetopt_args_info_help[8] ;
-  args_info->mod_help = gengetopt_args_info_help[9] ;
-  args_info->norm_help = gengetopt_args_info_help[10] ;
-  args_info->resolution_help = gengetopt_args_info_help[11] ;
-  args_info->steps_help = gengetopt_args_info_help[12] ;
-  args_info->seed_help = gengetopt_args_info_help[13] ;
-  args_info->Temp_help = gengetopt_args_info_help[14] ;
-  args_info->verbose_help = gengetopt_args_info_help[15] ;
-  args_info->debug_help = gengetopt_args_info_help[16] ;
+  args_info->checksteps_help = gengetopt_args_info_help[4] ;
+  args_info->elow_help = gengetopt_args_info_help[5] ;
+  args_info->ehigh_help = gengetopt_args_info_help[6] ;
+  args_info->flat_help = gengetopt_args_info_help[7] ;
+  args_info->info_help = gengetopt_args_info_help[8] ;
+  args_info->max_help = gengetopt_args_info_help[9] ;
+  args_info->mod_help = gengetopt_args_info_help[10] ;
+  args_info->norm_help = gengetopt_args_info_help[11] ;
+  args_info->resolution_help = gengetopt_args_info_help[12] ;
+  args_info->steplimit_help = gengetopt_args_info_help[13] ;
+  args_info->seed_help = gengetopt_args_info_help[14] ;
+  args_info->Temp_help = gengetopt_args_info_help[15] ;
+  args_info->verbose_help = gengetopt_args_info_help[16] ;
+  args_info->debug_help = gengetopt_args_info_help[17] ;
   
 }
 
@@ -222,6 +228,7 @@ cmdline_parser_release (struct gengetopt_args_info *args_info)
 {
   unsigned int i;
   free_string_field (&(args_info->bins_orig));
+  free_string_field (&(args_info->checksteps_orig));
   free_string_field (&(args_info->elow_orig));
   free_string_field (&(args_info->ehigh_orig));
   free_string_field (&(args_info->flat_orig));
@@ -229,7 +236,7 @@ cmdline_parser_release (struct gengetopt_args_info *args_info)
   free_string_field (&(args_info->mod_orig));
   free_string_field (&(args_info->norm_orig));
   free_string_field (&(args_info->resolution_orig));
-  free_string_field (&(args_info->steps_orig));
+  free_string_field (&(args_info->steplimit_orig));
   free_string_field (&(args_info->seed_orig));
   free_string_field (&(args_info->Temp_orig));
   
@@ -273,6 +280,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "version", 0, 0 );
   if (args_info->bins_given)
     write_into_file(outfile, "bins", args_info->bins_orig, 0);
+  if (args_info->checksteps_given)
+    write_into_file(outfile, "checksteps", args_info->checksteps_orig, 0);
   if (args_info->elow_given)
     write_into_file(outfile, "elow", args_info->elow_orig, 0);
   if (args_info->ehigh_given)
@@ -289,8 +298,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "norm", args_info->norm_orig, 0);
   if (args_info->resolution_given)
     write_into_file(outfile, "resolution", args_info->resolution_orig, 0);
-  if (args_info->steps_given)
-    write_into_file(outfile, "steps", args_info->steps_orig, 0);
+  if (args_info->steplimit_given)
+    write_into_file(outfile, "steplimit", args_info->steplimit_orig, 0);
   if (args_info->seed_given)
     write_into_file(outfile, "seed", args_info->seed_orig, 0);
   if (args_info->Temp_given)
@@ -567,15 +576,16 @@ cmdline_parser_internal (
         { "help",	0, NULL, 'h' },
         { "version",	0, NULL, 'V' },
         { "bins",	1, NULL, 'b' },
+        { "checksteps",	1, NULL, 'c' },
         { "elow",	1, NULL, 0 },
         { "ehigh",	1, NULL, 0 },
-        { "flat",	1, NULL, 'l' },
+        { "flat",	1, NULL, 0 },
         { "info",	0, NULL, 0 },
         { "max",	1, NULL, 'm' },
         { "mod",	1, NULL, 'f' },
         { "norm",	1, NULL, 'n' },
         { "resolution",	1, NULL, 'r' },
-        { "steps",	1, NULL, 's' },
+        { "steplimit",	1, NULL, 'l' },
         { "seed",	1, NULL, 'S' },
         { "Temp",	1, NULL, 'T' },
         { "verbose",	0, NULL, 'v' },
@@ -583,7 +593,7 @@ cmdline_parser_internal (
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVb:l:m:f:n:r:s:S:T:vd", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVb:c:m:f:n:r:l:S:T:vd", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -611,14 +621,14 @@ cmdline_parser_internal (
             goto failure;
         
           break;
-        case 'l':	/* Flatness criterion for the histogram.  */
+        case 'c':	/* Number of Wang-Landau steps before histogram is checked for flatness.  */
         
         
-          if (update_arg( (void *)&(args_info->flat_arg), 
-               &(args_info->flat_orig), &(args_info->flat_given),
-              &(local_args_info.flat_given), optarg, 0, 0, ARG_FLOAT,
+          if (update_arg( (void *)&(args_info->checksteps_arg), 
+               &(args_info->checksteps_orig), &(args_info->checksteps_given),
+              &(local_args_info.checksteps_given), optarg, 0, "100000", ARG_LONGLONG,
               check_ambiguity, override, 0, 0,
-              "flat", 'l',
+              "checksteps", 'c',
               additional_error))
             goto failure;
         
@@ -671,14 +681,14 @@ cmdline_parser_internal (
             goto failure;
         
           break;
-        case 's':	/* Number of Wang-Landau steps before histogram is checked for flatness.  */
+        case 'l':	/* Maximum number of MC steps to perform.  */
         
         
-          if (update_arg( (void *)&(args_info->steps_arg), 
-               &(args_info->steps_orig), &(args_info->steps_given),
-              &(local_args_info.steps_given), optarg, 0, 0, ARG_LONGLONG,
+          if (update_arg( (void *)&(args_info->steplimit_arg), 
+               &(args_info->steplimit_orig), &(args_info->steplimit_given),
+              &(local_args_info.steplimit_given), optarg, 0, "100000000", ARG_LONGLONG,
               check_ambiguity, override, 0, 0,
-              "steps", 's',
+              "steplimit", 'l',
               additional_error))
             goto failure;
         
@@ -753,6 +763,20 @@ cmdline_parser_internal (
                 &(local_args_info.ehigh_given), optarg, 0, 0, ARG_DOUBLE,
                 check_ambiguity, override, 0, 0,
                 "ehigh", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* Flatness criterion for the histogram.  */
+          else if (strcmp (long_options[option_index].name, "flat") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->flat_arg), 
+                 &(args_info->flat_orig), &(args_info->flat_given),
+                &(local_args_info.flat_given), optarg, 0, 0, ARG_FLOAT,
+                check_ambiguity, override, 0, 0,
+                "flat", '-',
                 additional_error))
               goto failure;
           

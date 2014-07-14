@@ -2,15 +2,16 @@ purpose "Sample the Density of States by a Wang-Landau MC simulation"
 args "--file-name=wl_cmdline --unamed-opts"
 section "General options"
 option "bins" b "Number of (equidistant) histogram bins" int optional
+option "checksteps" c "Number of Wang-Landau steps before histogram is checked for flatness" longlong default="100000" optional
 option "elow" - "Lower limit of sampling window (currently n/a)" double optional
 option "ehigh" - "Upper limit of sampling window (currently n/a)" double optional
-option "flat" l "Flatness criterion for the histogram" float optional
+option "flat" - "Flatness criterion for the histogram" float optional
 option "info" - "Show settings" flag off
 option "max" m "Upper energy bound for sampling" double optional	
 option "mod" f "Final value of Wang-Landau modification factor" double optional
 option "norm" n "Number of bins used for normalization" int optional
 option "resolution" r "Sampling resolution (histogram bin width)" double default="0.5" optional
-option "steps" s "Number of Wang-Landau steps before histogram is checked for flatness" longlong optional
+option "steplimit" l "Maximum number of MC steps to perform" longlong default="100000000" optional
 option "seed" S "Seed for random number generation" long optional
 option "Temp" T "Temperatur in Celsius" float no
 option "verbose" v  "Verbose output" flag off

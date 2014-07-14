@@ -46,6 +46,13 @@ struct gengetopt_args_info
   int bins_arg;	/**< @brief Number of (equidistant) histogram bins.  */
   char * bins_orig;	/**< @brief Number of (equidistant) histogram bins original value given at command line.  */
   const char *bins_help; /**< @brief Number of (equidistant) histogram bins help description.  */
+  #ifdef HAVE_LONG_LONG
+  long long int checksteps_arg;	/**< @brief Number of Wang-Landau steps before histogram is checked for flatness (default=100000).  */
+  #else
+  long checksteps_arg;	/**< @brief Number of Wang-Landau steps before histogram is checked for flatness (default=100000).  */
+  #endif
+  char * checksteps_orig;	/**< @brief Number of Wang-Landau steps before histogram is checked for flatness original value given at command line.  */
+  const char *checksteps_help; /**< @brief Number of Wang-Landau steps before histogram is checked for flatness help description.  */
   double elow_arg;	/**< @brief Lower limit of sampling window (currently n/a).  */
   char * elow_orig;	/**< @brief Lower limit of sampling window (currently n/a) original value given at command line.  */
   const char *elow_help; /**< @brief Lower limit of sampling window (currently n/a) help description.  */
@@ -70,12 +77,12 @@ struct gengetopt_args_info
   char * resolution_orig;	/**< @brief Sampling resolution (histogram bin width) original value given at command line.  */
   const char *resolution_help; /**< @brief Sampling resolution (histogram bin width) help description.  */
   #ifdef HAVE_LONG_LONG
-  long long int steps_arg;	/**< @brief Number of Wang-Landau steps before histogram is checked for flatness.  */
+  long long int steplimit_arg;	/**< @brief Maximum number of MC steps to perform (default=100000000).  */
   #else
-  long steps_arg;	/**< @brief Number of Wang-Landau steps before histogram is checked for flatness.  */
+  long steplimit_arg;	/**< @brief Maximum number of MC steps to perform (default=100000000).  */
   #endif
-  char * steps_orig;	/**< @brief Number of Wang-Landau steps before histogram is checked for flatness original value given at command line.  */
-  const char *steps_help; /**< @brief Number of Wang-Landau steps before histogram is checked for flatness help description.  */
+  char * steplimit_orig;	/**< @brief Maximum number of MC steps to perform original value given at command line.  */
+  const char *steplimit_help; /**< @brief Maximum number of MC steps to perform help description.  */
   long seed_arg;	/**< @brief Seed for random number generation.  */
   char * seed_orig;	/**< @brief Seed for random number generation original value given at command line.  */
   const char *seed_help; /**< @brief Seed for random number generation help description.  */
@@ -90,6 +97,7 @@ struct gengetopt_args_info
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
   unsigned int bins_given ;	/**< @brief Whether bins was given.  */
+  unsigned int checksteps_given ;	/**< @brief Whether checksteps was given.  */
   unsigned int elow_given ;	/**< @brief Whether elow was given.  */
   unsigned int ehigh_given ;	/**< @brief Whether ehigh was given.  */
   unsigned int flat_given ;	/**< @brief Whether flat was given.  */
@@ -98,7 +106,7 @@ struct gengetopt_args_info
   unsigned int mod_given ;	/**< @brief Whether mod was given.  */
   unsigned int norm_given ;	/**< @brief Whether norm was given.  */
   unsigned int resolution_given ;	/**< @brief Whether resolution was given.  */
-  unsigned int steps_given ;	/**< @brief Whether steps was given.  */
+  unsigned int steplimit_given ;	/**< @brief Whether steplimit was given.  */
   unsigned int seed_given ;	/**< @brief Whether seed was given.  */
   unsigned int Temp_given ;	/**< @brief Whether Temp was given.  */
   unsigned int verbose_given ;	/**< @brief Whether verbose was given.  */

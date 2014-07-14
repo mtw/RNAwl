@@ -1,6 +1,6 @@
 /*
   wl_options.c Command-line parsing for Wang-Landau sampling
-  Last changed Time-stamp: <2014-07-03 18:09:32 mtw>
+  Last changed Time-stamp: <2014-07-14 16:23:10 mtw>
 */
 
 #include <stdio.h>
@@ -56,12 +56,13 @@ ini_globals(void)
 {
   wanglandau_opt.INFILE     = NULL;
   wanglandau_opt.bins       = 100;
+  wanglandau_opt.checksteps = 100000;
   wanglandau_opt.ffinal     = 1e-7;
   wanglandau_opt.flat       = 0.8;
   wanglandau_opt.res        = 0.5;         /* kcal/mol */
-  wanglandau_opt.steps      = 100000;
   wanglandau_opt.seed       = 123456789;
   wanglandau_opt.seed_given = 0;
+  wanglandau_opt.steplimit  = 100000000;
   wanglandau_opt.T          = 37.0;
   wanglandau_opt.erange     = -1;
   wanglandau_opt.norm       = 1;
@@ -98,9 +99,9 @@ set_parameters(void)
     }
   }
   
-  if (args_info.steps_given){
-    if( (wanglandau_opt.steps = args_info.steps_arg) <= 0 ){
-      fprintf(stderr, "Value of --steps must be > 0\n");
+  if (args_info.checksteps_given){
+    if( (wanglandau_opt.checksteps = args_info.checksteps_arg) <= 0 ){
+      fprintf(stderr, "Value of --checksteps must be > 0\n");
       exit (EXIT_FAILURE);
     }
   }
@@ -112,9 +113,16 @@ set_parameters(void)
       exit (EXIT_FAILURE);
     }
   }
+
+  if (args_info.steplimit_given){
+    if( (wanglandau_opt.steplimit = args_info.steplimit_arg) <= 1 ){
+      fprintf(stderr, "Value of --steplimit must be > 1\n");
+      exit (EXIT_FAILURE);
+    }
+  }
   
   if(args_info.mod_given){
-    if( (wanglandau_opt.ffinal = args_info.mod_arg) < 1e-15 ){
+    if( (wanglandau_opt.ffinal = args_info.mod_arg) < 1e-201 ){
       fprintf(stderr, "Value of -f must be > 1e-15 \n");
       exit (EXIT_FAILURE);
     }
@@ -155,25 +163,27 @@ display_settings(void)
 {
   fprintf(stderr, "Settings:\n");
   fprintf(stderr,
-	  "--bins    = %d\n"
-	  "--max     = %g\n"
-	  "--ffinal  = %g\n"
-	  "--flat    = %g\n"
-	  "--norm    = %d\n"
-	  "--res     = %g\n"
-	  "--seed    = %lu\n"
-	  "--steps   = %lu\n"
-	  "--Temp    = %4.2f\n"
-	  "--verbose = %i\n"
-	  "--debug   = %i\n",
+	  "--bins       = %d\n"
+	  "--checksteps = %lu\n"
+	  "--max        = %g\n"
+	  "--ffinal     = %g\n"
+	  "--flat       = %g\n"
+	  "--norm       = %d\n"
+	  "--res        = %g\n"
+	  "--seed       = %lu\n"
+	  "--steplimit  = %lu\n"
+	  "--Temp       = %4.2f\n"
+	  "--verbose    = %i\n"
+	  "--debug      = %i\n",
 	  wanglandau_opt.bins,
+	  wanglandau_opt.checksteps,
 	  wanglandau_opt.max,
 	  wanglandau_opt.ffinal,
 	  wanglandau_opt.flat,
 	  wanglandau_opt.norm,
 	  wanglandau_opt.res,
 	  wanglandau_opt.seed,
-	  wanglandau_opt.steps,
+	  wanglandau_opt.steplimit,
 	  wanglandau_opt.T,
 	  wanglandau_opt.verbose,
 	  wanglandau_opt.debug);
