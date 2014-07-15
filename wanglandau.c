@@ -1,6 +1,6 @@
 /*
   wanglandau.c : main computation routines for Wang-Landau sampling
-  Last changed Time-stamp: <2014-07-14 17:28:27 mtw>
+  Last changed Time-stamp: <2014-07-15 14:36:06 mtw>
 
   Literature:
   Landau, PD and Tsai, S-H and Exler, M (2004) Am. J. Phys. 72:(10) 1294-1302
@@ -194,15 +194,15 @@ initialize_wl(void)
 static void
 wl_montecarlo(char *struc)
 {
-  gsl_histogram *gcp=NULL; /* clone of g used during crosscheck output */ 
   short *pt=NULL;
   move_str m;
   int e,enew,emove,eval_me,status,debug=1;
-  long int crosscheck=1000000; /* used for convergence checks */
+  long int crosscheck=100000; /* used for convergence checks */
   long int crosscheck_limit = 100000000;
   double g_b1,g_b2,prob,lnf = 1.;  /* log modification parameter f */
   size_t b1,b2;                    /* indices in g/h corresponding to
 				      old/new energies */
+  gsl_histogram *gcp=NULL; /* clone of g used during crosscheck output */ 
 
   eval_me = 1; /* paranoid checking of neighbors against RNAeval */
   if (wanglandau_opt.verbose){
@@ -356,15 +356,16 @@ wl_montecarlo(char *struc)
       else {
 	fprintf(stderr, "#lnf=%12g steps=%20li not flat\n", lnf, steps);
       }
-      output_dos(g,'l');
+      // output_dos(g,'l');
     }
     
     /* stop criterion */
     if(steps % wanglandau_opt.steplimit == 0){
-      
+      fprintf(stderr,"maximun number of MC steps (%li) reached, exiting ...",
+	      wanglandau_opt.steplimit);
+      break;
     }
-    
-    
+
   } /* end while */
   free(pt); 
   return;
@@ -438,7 +439,10 @@ scale_dos(gsl_histogram *y)
   int i,maxbin;
   size_t bins;
   double  maxval=-1., sum=0., x=0, factor=0., GZero=0,  exp_G_norm=0.;
+  const size_t n = y->n;
 
+  //fprintf(stderr," ->>>>>>>>>>>>>>> n is %i <<<<<<<<<<<<<<<\n",(int)n);
+  
   /* FIRST: scale it via the ground state */
   /* ln[gn(E)] = ln[g(E)]-ln[g(Egs)]+ln[Q] */
   /* where Q is the # of structures found in the lowest bin/groundstate */
@@ -447,27 +451,22 @@ scale_dos(gsl_histogram *y)
   /* get value of y[0] */
   GZero = gsl_histogram_get(y,0);
   for(i=0;i<wanglandau_opt.norm;i++){
-    double val = gsl_histogram_get(y,i);
-    factor += val;
+    factor += gsl_histogram_get(s,i);
   }
-  /* subtract g[0] from each entry to get smaller numbers */
+  fprintf(stderr, "-->> factor is %g | norm = %i\n",factor,wanglandau_opt.norm);
+  /* subtract g[0] [ln(g(Egs))] from each entry to get smaller numbers */
   gsl_histogram_shift(y,(-1*GZero));
-  /* scale it via ground state 
-     for(i=0;i<wanglandau_opt.norm;i++){
-     double val = gsl_histogram_get(g,i);
-     exp_G_norm += exp(val);
-     }
-     for(i=0;i<bins;i++){
-     double val = gsl_histogram_get(g,i);
-     double tmp = val+log(factor)-log(exp_G_norm);
-     dos[i] = tmp;
-     }
-  */
+  /* add log(factor) [ln(Q)] */
+  gsl_histogram_shift(y,log(factor));
 
-   output_dos(y,'s');  
-   /* gsl_histogram_fprintf(stderr,x,"%6.2f","%30.6f"); */
-   
-   return y;
+  /* exponentiate to get effective DOS */
+  for(i=0;i<n;i++){\
+    y->bin[i]=exp(y->bin[i]);
+  }
+  
+  output_dos(y,'s');  
+  
+  return y;
 }
 
 /* ==== */
@@ -479,6 +478,7 @@ output_dos(const gsl_histogram *x, const char T)
   char *dos_fn=NULL, *lDoS_suffix="lDoS", *sDoS_suffix="sDoS";
   char s[50];
   double val,lo,hi;
+ 
   
   sprintf(s,"%li",steps);
   fnlen = strlen(out_prefix)+strlen(lDoS_suffix)+64;
@@ -501,21 +501,18 @@ output_dos(const gsl_histogram *x, const char T)
   }
   
   dos_fp = fopen(dos_fn, "w+");
-  fprintf(dos_fp, "# extimation for g\n");
-  fprintf(dos_fp, "# sampling range: %6.2f - %6.2f\n",
+  fprintf(dos_fp, "# estimated DOS after %li steps\n",steps);
+  fprintf(dos_fp, "# sampling range: %6.2f -- %6.2f\n",
 	  gsl_histogram_min(g),gsl_histogram_max(g));
   fprintf(dos_fp, "# bin resolution: %g\n",wanglandau_opt.res);
-  fprintf(dos_fp, "# steps: %li\n",steps);
 
   /* loop over histogram g */
   for (i=0;i<=maxbin;i++){
     val = gsl_histogram_get(x,i);
-    if (val == 0.){continue;}
+    // if (val == 0.){continue;}
     gsl_histogram_get_range(x,i,&lo,&hi);
     fprintf(dos_fp,"%6.3f\t%20.6f\n",lo+(hi-lo)/2,val);
-  }
-
-  
+  }  
   fclose(dos_fp);
   free(dos_fn);
   return;
