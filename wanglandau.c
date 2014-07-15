@@ -1,6 +1,6 @@
 /*
   wanglandau.c : main computation routines for Wang-Landau sampling
-  Last changed Time-stamp: <2014-07-15 14:36:06 mtw>
+  Last changed Time-stamp: <2014-07-15 22:13:54 mtw>
 
   Literature:
   Landau, PD and Tsai, S-H and Exler, M (2004) Am. J. Phys. 72:(10) 1294-1302
@@ -11,10 +11,6 @@
 
 /*
 TODO
-
-- output current DOS estimation after 1 million * 10^(1/4) steps until
-100 million steps are reached (do not stop at f=1e-8)
-
 - relative error (siehe original-Paper) einbauen und fuer jede Ausgabe
   der geschaetzten DOS ausgeben
 
@@ -287,14 +283,16 @@ wl_montecarlo(char *struc)
     if ((prob == 1 || (rnum <= prob)) ) { /* accept & apply the move */
       apply_move_pt(pt,m);
       if(wanglandau_opt.debug){
-	print_str(stdout,pt);printf(" %6.2f bin:%d [A]\n",(float)enew/100,b2);
+	print_str(stdout,pt);printf(" %6.2f bin:%d [A]\n",
+				    (float)enew/100,b2);
       }
       b1 = b2;
       e = enew;
     }
     else { /* reject the move */
       if(wanglandau_opt.debug){
-	print_str(stdout,pt);printf(" %6.2f bin:%d [R]\n",(float)enew/100,b2);
+	print_str(stdout,pt);printf(" %6.2f bin:%d [R]\n",
+				    (float)enew/100,b2);
        }
     }
     
@@ -388,7 +386,7 @@ static short
 histogram_is_flat(const gsl_histogram *z)
 {
   double val,avg,sum = 0.0;
-  size_t lbin,gbin;        /* lowest/greatest populated bin */
+  size_t lbin,gbin;         /* lowest/greatest populated bin */
   int i,b=0,is_flat=1;
 
   /* get lowest populated bin */
@@ -509,9 +507,9 @@ output_dos(const gsl_histogram *x, const char T)
   /* loop over histogram g */
   for (i=0;i<=maxbin;i++){
     val = gsl_histogram_get(x,i);
-    // if (val == 0.){continue;}
+    if (val == 0.){continue;}
     gsl_histogram_get_range(x,i,&lo,&hi);
-    fprintf(dos_fp,"%6.3f\t%20.6f\n",lo+(hi-lo)/2,val);
+    fprintf(dos_fp,"%6.2f\t%20.6f\n",lo+(hi-lo)/2,val);
   }  
   fclose(dos_fp);
   free(dos_fn);
