@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # -*-CPerl-*-
-# Last changed Time-stamp: <2014-07-15 23:34:10 mtw>
+# Last changed Time-stamp: <2014-07-16 13:32:30 mtw>
 #
 # Evaluate (sampled) Density of States (DOS) vs. reference DOS
 #
@@ -69,39 +69,50 @@ unless (-d $destdir){$cmd = "mkdir -p $destdir"; system($cmd);}
 #($bn_r,$dir_r,$ext_r) = fileparse($infile_r,qr/\.[^.]*/);
 #($bn_s,$dir_s,$ext_s) = fileparse($infile_s,qr/\.[^.]*/);
 
-print "parsing reference DOS $infile_r\n";
-print "parsing sampled DOS $infile_s\n";
+print "#parsing reference DOS $infile_r\n";
+print "#parsing sampled DOS $infile_s\n";
 
 # 1) parse reference DOS
 open(REF, "<", $infile_r) or die $!;
 while(<REF>){
-chomp;
-next if ($_ =~ /^#/);
-die "error while parsing reference DOS file\n ---> $_ <---\n" 
-  unless ($_ =~ /(\-?\d+\.\d+)\s+(\d+)/);
-$refDOS{$1}=$2;
+  chomp;
+  next if ($_ =~ /^#/);
+  die "error while parsing reference DOS file\n ---> $_ <---\n" 
+    unless ($_ =~ /(\-?\d+\.\d+)\s+(\d+)/);
+  $refDOS{$1}=log($2);
 }
 
 close(REF);
 
 #print Dumper(\%refDOS);
-foreach my $i (sort keys(%refDOS)){
-  print "$i => $refDOS{$i}\n";
-}
 
 # 2) parse sampled DOS
 open(SAM, "<", $infile_s) or die $!;
 while(<SAM>){
-chomp;
-next if ($_ =~ /^#/);
-#die "error while parsing reference DOS file\n ---> $_ <---\n" 
-#  unless ($_ =~ /(\-?\d+\.\d+)\s+(\d+)/);
-
+  my ($energy,$sDOS,$rDOS,$relErr);
+  chomp;
+  next if ($_ =~ /^#/);
+  die "error while parsing reference DOS file\n ---> $_ <---\n" 
+    unless ($_ =~ /(\-?\d+\.\d+)\s+(\d+\.\d+)/);
+  $energy = $1;
+  $sDOS = log($2); # value in sampled DOS
+  #print "$energy => $eDOS\n";
+  
+  die "error: energy $energy not present in reference DOS\n"
+    unless exists $refDOS{$energy};
+  $rDOS = $refDOS{$energy}; # value in reference DOS
+  
+  # 3) evaluate statistics,ie compute relative error
+  if($rDOS != 0){
+    $relErr = abs(($sDOS-$rDOS)/$rDOS);
+    # print "-->$energy\trelErr = abs(($sDOS-$rDOS)/$rDOS)\n";
+    print "$energy\t$relErr\n";# = abs(($sDOS-$rDOS)/$rDOS)\ \n";
+  }
 }
 
 close(SAM);
 
-# 3) evaluate statistics,ie compute relative error
+
 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^#
 #^^^^^^^^^^^ Subroutines ^^^^^^^^^^#
