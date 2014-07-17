@@ -1,19 +1,11 @@
 /*
   wanglandau.c : main computation routines for Wang-Landau sampling
-  Last changed Time-stamp: <2014-07-15 22:13:54 mtw>
+  Last changed Time-stamp: <2014-07-16 16:09:03 mtw>
 
   Literature:
   Landau, PD and Tsai, S-H and Exler, M (2004) Am. J. Phys. 72:(10) 1294-1302
   A new approach to Monte Carlo simulations in statistical physics:
   Wang-Landau sampling
-*/
-
-
-/*
-TODO
-- relative error (siehe original-Paper) einbauen und fuer jede Ausgabe
-  der geschaetzten DOS ausgeben
-
 */
 
 #include <stdio.h>
@@ -63,10 +55,7 @@ wanglandau(void)
   pre_process_model(); /* get normalization factor for histogram by
 			  populating the first bin */
   
- 
-  if(wanglandau_opt.verbose){
-    printf("[[wanlandau()]]\n");
-  }
+  if(wanglandau_opt.verbose){ printf("[[wanlandau()]]\n");}
   wl_montecarlo(wanglandau_opt.structure);
   // scale_normalize_DOS();
   post_process_model();
@@ -143,11 +132,6 @@ initialize_wl(void)
   fprintf (stderr, "# sampling energy range is %6.2f - %6.2f\n",
 	   hmin,hmax);
   free(range);
-  
-
-  /* do we really need this? */
-     dos = (double*)calloc(wanglandau_opt.bins,sizeof(double));
-     assert(dos != NULL);
   
   /* get the energy range up to which we will compute true DOS via
      RNAsubopt, which will be required later for normalization */
@@ -334,13 +318,13 @@ wl_montecarlo(char *struc)
        used this fopr comparing perfomanceand convergence of different
        DoS sampling methods */
     if((steps % crosscheck == 0) && (crosscheck <= crosscheck_limit)){
-      fprintf(stderr," crosscheck is %li ",crosscheck);
+      fprintf(stderr,"# crosscheck reached %li steps ",crosscheck);
       gcp = gsl_histogram_clone(g);
       scale_dos(gcp); /* scale estimated g; make ln(g[0])=0 */
       output_dos(gcp,'s');
       crosscheck *= (pow(10, 1.0/4.0));
       gsl_histogram_free(gcp);
-      fprintf(stderr,"->  new crosscheck value is %li\n", crosscheck);
+      fprintf(stderr,"->  new crosscheck will be performed at %li steps\n", crosscheck);
     }
     
     if(steps % wanglandau_opt.checksteps == 0) {
@@ -354,7 +338,7 @@ wl_montecarlo(char *struc)
       else {
 	fprintf(stderr, "#lnf=%12g steps=%20li not flat\n", lnf, steps);
       }
-      // output_dos(g,'l');
+      output_dos(g,'l');
     }
     
     /* stop criterion */
@@ -437,9 +421,7 @@ scale_dos(gsl_histogram *y)
   int i,maxbin;
   size_t bins;
   double  maxval=-1., sum=0., x=0, factor=0., GZero=0,  exp_G_norm=0.;
-  const size_t n = y->n;
-
-  //fprintf(stderr," ->>>>>>>>>>>>>>> n is %i <<<<<<<<<<<<<<<\n",(int)n);
+  const size_t n = y->n; /* nr of bins */
   
   /* FIRST: scale it via the ground state */
   /* ln[gn(E)] = ln[g(E)]-ln[g(Egs)]+ln[Q] */
@@ -451,7 +433,6 @@ scale_dos(gsl_histogram *y)
   for(i=0;i<wanglandau_opt.norm;i++){
     factor += gsl_histogram_get(s,i);
   }
-  fprintf(stderr, "-->> factor is %g | norm = %i\n",factor,wanglandau_opt.norm);
   /* subtract g[0] [ln(g(Egs))] from each entry to get smaller numbers */
   gsl_histogram_shift(y,(-1*GZero));
   /* add log(factor) [ln(Q)] */
@@ -536,7 +517,6 @@ wanglandau_free_memory(void)
   free(pt);
   free(s0);
   free(s1);
-  free(dos);
   free(wanglandau_opt.sequence);
   free(wanglandau_opt.structure);
   free(wanglandau_opt.basename);
