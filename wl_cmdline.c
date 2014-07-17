@@ -35,8 +35,8 @@ const char *gengetopt_args_info_help[] = {
   "  -h, --help                 Print help and exit",
   "  -V, --version              Print version and exit",
   "\nGeneral options:",
-  "  -b, --bins=INT             Number of (equidistant) histogram bins",
-  "  -c, --checksteps=LONGLONG  Number of Wang-Landau steps before histogram is \n                               checked for flatness  (default=`100000')",
+  "  -b, --bins=INT             Number of (equidistant) histogram bins  \n                               (default=`100')",
+  "  -c, --checksteps=LONGLONG  Number of Wang-Landau steps before histogram is \n                               checked for flatness  (default=`1000000')",
   "      --elow=DOUBLE          Lower limit of sampling window (currently n/a)",
   "      --ehigh=DOUBLE         Upper limit of sampling window (currently n/a)",
   "      --flat=FLOAT           Flatness criterion for the histogram",
@@ -47,7 +47,7 @@ const char *gengetopt_args_info_help[] = {
   "  -r, --resolution=DOUBLE    Sampling resolution (histogram bin width)  \n                               (default=`0.5')",
   "  -l, --steplimit=LONGLONG   Maximum number of MC steps to perform  \n                               (default=`100000000')",
   "  -S, --seed=LONG            Seed for random number generation",
-  "  -T, --Temp=FLOAT           Temperatur in Celsius",
+  "  -T, --Temp=FLOAT           Simulation temperature in Celsius (currently n/a)",
   "  -v, --verbose              Verbose output  (default=off)",
   "  -d, --debug                Debugging output  (default=off)",
     0
@@ -101,8 +101,9 @@ static
 void clear_args (struct gengetopt_args_info *args_info)
 {
   FIX_UNUSED (args_info);
+  args_info->bins_arg = 100;
   args_info->bins_orig = NULL;
-  args_info->checksteps_arg = 100000;
+  args_info->checksteps_arg = 1000000;
   args_info->checksteps_orig = NULL;
   args_info->elow_orig = NULL;
   args_info->ehigh_orig = NULL;
@@ -614,7 +615,7 @@ cmdline_parser_internal (
         
           if (update_arg( (void *)&(args_info->bins_arg), 
                &(args_info->bins_orig), &(args_info->bins_given),
-              &(local_args_info.bins_given), optarg, 0, 0, ARG_INT,
+              &(local_args_info.bins_given), optarg, 0, "100", ARG_INT,
               check_ambiguity, override, 0, 0,
               "bins", 'b',
               additional_error))
@@ -626,7 +627,7 @@ cmdline_parser_internal (
         
           if (update_arg( (void *)&(args_info->checksteps_arg), 
                &(args_info->checksteps_orig), &(args_info->checksteps_given),
-              &(local_args_info.checksteps_given), optarg, 0, "100000", ARG_LONGLONG,
+              &(local_args_info.checksteps_given), optarg, 0, "1000000", ARG_LONGLONG,
               check_ambiguity, override, 0, 0,
               "checksteps", 'c',
               additional_error))
@@ -705,7 +706,7 @@ cmdline_parser_internal (
             goto failure;
         
           break;
-        case 'T':	/* Temperatur in Celsius.  */
+        case 'T':	/* Simulation temperature in Celsius (currently n/a).  */
         
         
           if (update_arg( (void *)&(args_info->Temp_arg), 

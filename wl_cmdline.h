@@ -43,13 +43,13 @@ struct gengetopt_args_info
 {
   const char *help_help; /**< @brief Print help and exit help description.  */
   const char *version_help; /**< @brief Print version and exit help description.  */
-  int bins_arg;	/**< @brief Number of (equidistant) histogram bins.  */
+  int bins_arg;	/**< @brief Number of (equidistant) histogram bins (default='100').  */
   char * bins_orig;	/**< @brief Number of (equidistant) histogram bins original value given at command line.  */
   const char *bins_help; /**< @brief Number of (equidistant) histogram bins help description.  */
   #ifdef HAVE_LONG_LONG
-  long long int checksteps_arg;	/**< @brief Number of Wang-Landau steps before histogram is checked for flatness (default=100000).  */
+  long long int checksteps_arg;	/**< @brief Number of Wang-Landau steps before histogram is checked for flatness (default=1000000).  */
   #else
-  long checksteps_arg;	/**< @brief Number of Wang-Landau steps before histogram is checked for flatness (default=100000).  */
+  long checksteps_arg;	/**< @brief Number of Wang-Landau steps before histogram is checked for flatness (default=1000000).  */
   #endif
   char * checksteps_orig;	/**< @brief Number of Wang-Landau steps before histogram is checked for flatness original value given at command line.  */
   const char *checksteps_help; /**< @brief Number of Wang-Landau steps before histogram is checked for flatness help description.  */
@@ -86,9 +86,9 @@ struct gengetopt_args_info
   long seed_arg;	/**< @brief Seed for random number generation.  */
   char * seed_orig;	/**< @brief Seed for random number generation original value given at command line.  */
   const char *seed_help; /**< @brief Seed for random number generation help description.  */
-  float Temp_arg;	/**< @brief Temperatur in Celsius.  */
-  char * Temp_orig;	/**< @brief Temperatur in Celsius original value given at command line.  */
-  const char *Temp_help; /**< @brief Temperatur in Celsius help description.  */
+  float Temp_arg;	/**< @brief Simulation temperature in Celsius (currently n/a).  */
+  char * Temp_orig;	/**< @brief Simulation temperature in Celsius (currently n/a) original value given at command line.  */
+  const char *Temp_help; /**< @brief Simulation temperature in Celsius (currently n/a) help description.  */
   int verbose_flag;	/**< @brief Verbose output (default=off).  */
   const char *verbose_help; /**< @brief Verbose output help description.  */
   int debug_flag;	/**< @brief Debugging output (default=off).  */
