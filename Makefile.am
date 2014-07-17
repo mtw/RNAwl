@@ -1,5 +1,5 @@
-bin_PROGRAMS = wanglandau
-wanglandau_SOURCES =	main.c\
+bin_PROGRAMS = RNAwl
+RNAwl_SOURCES =	main.c\
 			moves.c\
 			wl_options.c\
 			wanglandau.c\

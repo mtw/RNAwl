@@ -2,7 +2,10 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT([wanglandau], [0.1], [michael@wolfinger.eu])
+AC_INIT([RNAwl],
+	m4_esyscmd_s([test -d .git && git describe --tags || cat VERSION]),
+	[michael@wolfinger.eu])
+
 # for automake
 AC_CONFIG_AUX_DIR(config)
 AM_INIT_AUTOMAKE
