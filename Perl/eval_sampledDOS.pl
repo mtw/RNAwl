@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # -*-CPerl-*-
-# Last changed Time-stamp: <2014-07-16 13:32:30 mtw>
+# Last changed Time-stamp: <2014-07-17 17:08:34 mtw>
 #
 # Evaluate (sampled) Density of States (DOS) vs. reference DOS
 #
@@ -23,7 +23,7 @@
 # *  GNU General Public License for more details.
 # *
 # *  You should have received a copy of the GNU General Public License
-# *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# *  along with this program. If not, see <http://www.gnu.org/licenses/>.
 # *
 # *  This copyright notice MUST APPEAR in all copies of the script!
 # ***********************************************************************
@@ -39,7 +39,6 @@ use File::Basename;
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^#
 my ($infile_s,$infile_r,$bn_r,$dir_r,$ext_r,$bn_s,$dir_s,$ext_s,$cmd);
 my $debug         = 0;
-my $destdir       = "./";
 my %refDOS        = ();
 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^#
@@ -49,7 +48,6 @@ Getopt::Long::config('no_ignore_case');
 &usage() unless GetOptions("s=s"           => \$infile_s,
 			   "r=s"           => \$infile_r,
 			   "d"             => sub{$debug=1},
-			   "o=s"           => \$destdir,
                            "-help"         => \&usage,
                            "v");
 
@@ -64,10 +62,6 @@ die "ERROR in [eval_sampledDOS]: input reference DOS file not found"
 
 unless ($infile_r =~ /^\// || $infile_r =~ /^\.\//){$infile_r = "./".$infile_r;}
 unless ($infile_s =~ /^\// || $infile_s =~ /^\.\//){$infile_s = "./".$infile_s;}
-unless ($destdir =~ /\/$/){$destdir .= "/";}
-unless (-d $destdir){$cmd = "mkdir -p $destdir"; system($cmd);}
-#($bn_r,$dir_r,$ext_r) = fileparse($infile_r,qr/\.[^.]*/);
-#($bn_s,$dir_s,$ext_s) = fileparse($infile_s,qr/\.[^.]*/);
 
 print "#parsing reference DOS $infile_r\n";
 print "#parsing sampled DOS $infile_s\n";
@@ -77,11 +71,11 @@ open(REF, "<", $infile_r) or die $!;
 while(<REF>){
   chomp;
   next if ($_ =~ /^#/);
-  die "error while parsing reference DOS file\n ---> $_ <---\n" 
-    unless ($_ =~ /(\-?\d+\.\d+)\s+(\d+)/);
+  my $line = $_;
+  die "error while parsing reference DOS file\n ---> $line <---\n"
+    unless ($line =~ /(\-?\d+\.\d+)\s+(\d+)/);
   $refDOS{$1}=log($2);
 }
-
 close(REF);
 
 #print Dumper(\%refDOS);
@@ -92,31 +86,24 @@ while(<SAM>){
   my ($energy,$sDOS,$rDOS,$relErr);
   chomp;
   next if ($_ =~ /^#/);
-  die "error while parsing reference DOS file\n ---> $_ <---\n" 
-    unless ($_ =~ /(\-?\d+\.\d+)\s+(\d+\.\d+)/);
+  die "error while parsing sampled DOS file\n ---> $_ <---\n"
+    unless ($_ =~ /(\-?\d+\.\d+)\s+(\d+\.\d)/);
+  die ("Cannot take log of 0 at  $infile_s\n$!\n") if($2 == 0.);
   $energy = $1;
   $sDOS = log($2); # value in sampled DOS
-  #print "$energy => $eDOS\n";
-  
+
   die "error: energy $energy not present in reference DOS\n"
     unless exists $refDOS{$energy};
   $rDOS = $refDOS{$energy}; # value in reference DOS
-  
+
   # 3) evaluate statistics,ie compute relative error
   if($rDOS != 0){
     $relErr = abs(($sDOS-$rDOS)/$rDOS);
-    # print "-->$energy\trelErr = abs(($sDOS-$rDOS)/$rDOS)\n";
     print "$energy\t$relErr\n";# = abs(($sDOS-$rDOS)/$rDOS)\ \n";
   }
 }
 
 close(SAM);
-
-
-
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^#
-#^^^^^^^^^^^ Subroutines ^^^^^^^^^^#
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^#
 
 
 sub usage {
@@ -127,7 +114,6 @@ usage: $0 [options]
 program specific options:                                default:
  -r      <file>   reference DOS                          ($infile_r)
  -s      <file>   sampled DOS                            ($infile_s)
- -o      <path>   output directory                       ($destdir)
  -d               debug output                           ($debug)
  -help            print this information
 
