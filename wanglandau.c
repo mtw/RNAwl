@@ -1,6 +1,6 @@
 /*
   wanglandau.c : main computation routines for Wang-Landau sampling
-  Last changed Time-stamp: <2014-07-18 11:29:40 mtw>
+  Last changed Time-stamp: <2014-07-18 17:32:18 mtw>
 
   Literature:
   Landau, PD and Tsai, S-H and Exler, M (2004) Am. J. Phys. 72:(10) 1294-1302
@@ -31,6 +31,7 @@ static void wl_montecarlo(char *);
 static gsl_histogram * scale_dos(gsl_histogram *);
 static void output_dos(const gsl_histogram *, const char);
 static short histogram_is_flat(const gsl_histogram *);
+static double partition_function(const gsl_histogram *);
 static gsl_histogram *ini_histogram_uniform(const int,const double,const double);
 
 /* variables */
@@ -321,7 +322,9 @@ wl_montecarlo(char *struc)
       fprintf(stderr,"# crosscheck reached %li steps ",crosscheck);
       gcp = gsl_histogram_clone(g);
       scale_dos(gcp); /* scale estimated g; make ln(g[0])=0 */
+      double Z = partition_function(gcp);
       output_dos(gcp,'s');
+      fprintf(stderr, "Z=%10.4g\n", Z);
       crosscheck *= (pow(10, 1.0/4.0));
       gsl_histogram_free(gcp);
       fprintf(stderr,"->  new crosscheck will be performed at %li steps\n", crosscheck);
@@ -412,6 +415,25 @@ histogram_is_flat(const gsl_histogram *z)
     }
   }
   return is_flat;
+}
+
+/* ==== */
+/* Z = \sum{E} g(e)*e^{-E-kT} */
+static double
+partition_function(const gsl_histogram *y)
+{
+  int i;
+  float T;
+  double kT,Z=0.;
+  const size_t n = y->n; /* nr of bins */
+
+  T = 273.15 + wanglandau_opt.T;
+  kT  = 0.00198717*4.16*T;
+  
+  for(i=0;i<n;i++){
+    Z += y->bin[i] * exp(-1*y->bin[i]/kT);
+  }
+  return Z;
 }
 
 /* ==== */
