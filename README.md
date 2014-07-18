@@ -1,4 +1,4 @@
-# RNAwl - Estimate Density of Satates via Wang-Landau sampling
+# RNAwl - Estimate Density of States via Wang-Landau sampling
 
 The Wang-Landau algorithm [1],[2] is a Mote Carlo approach for sampling the
 Density of States (DOS) of a system via a random walk in energy space. It
@@ -63,9 +63,9 @@ is available in the Perl/ folder of the distribution.
 Histograms are allocated to uniformly cover the sampling range per
 default. If you would like to have more fine-grained control over the
 histogram layout, you can provide a custom bin width via the --resolution
-option. The sampling range will then be computed as <resolution> * <bins>,
-i.e. the upper bound of the sampling range is then computed as <mfe> +
-<resolution> * <bins>.
+option. The sampling range will then be computed as \<resolution\> \*
+\<bins\>, i.e. the upper bound of the sampling range is then computed as
+\<mfe\> + \<resolution\> \* \<bins\>.
 
 ## References
 
