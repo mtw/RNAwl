@@ -1,6 +1,6 @@
 /*
   wanglandau.c : main computation routines for Wang-Landau sampling
-  Last changed Time-stamp: <2014-07-16 16:09:03 mtw>
+  Last changed Time-stamp: <2014-07-18 11:29:40 mtw>
 
   Literature:
   Landau, PD and Tsai, S-H and Exler, M (2004) Am. J. Phys. 72:(10) 1294-1302
@@ -315,8 +315,8 @@ wl_montecarlo(char *struc)
     // end of stuff that can be skipped
 
     /* output DoS every x*10^(1/4) steps, starting with x=10^6 (we
-       used this fopr comparing perfomanceand convergence of different
-       DoS sampling methods */
+       used this fopr comparing perfomance and convergence of
+       different DoS sampling methods */
     if((steps % crosscheck == 0) && (crosscheck <= crosscheck_limit)){
       fprintf(stderr,"# crosscheck reached %li steps ",crosscheck);
       gcp = gsl_histogram_clone(g);
@@ -439,7 +439,7 @@ scale_dos(gsl_histogram *y)
   gsl_histogram_shift(y,log(factor));
 
   /* exponentiate to get effective DOS */
-  for(i=0;i<n;i++){\
+  for(i=0;i<n;i++){
     y->bin[i]=exp(y->bin[i]);
   }
   
