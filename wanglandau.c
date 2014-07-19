@@ -1,6 +1,6 @@
 /*
   wanglandau.c : main computation routines for Wang-Landau sampling
-  Last changed Time-stamp: <2014-07-18 17:32:18 mtw>
+  Last changed Time-stamp: <2014-07-19 23:07:49 mtw>
 
   Literature:
   Landau, PD and Tsai, S-H and Exler, M (2004) Am. J. Phys. 72:(10) 1294-1302
@@ -179,7 +179,7 @@ wl_montecarlo(char *struc)
   move_str m;
   int e,enew,emove,eval_me,status,debug=1;
   long int crosscheck=1000000; /* used for convergence checks */
-  long int crosscheck_limit = 100000000;
+  long int crosscheck_limit = 100000000000000000;
   double g_b1,g_b2,prob,lnf = 1.;  /* log modification parameter f */
   size_t b1,b2;                    /* indices in g/h corresponding to
 				      old/new energies */
