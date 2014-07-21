@@ -1,6 +1,6 @@
 /*
   wanglandau.c : main computation routines for Wang-Landau sampling
-  Last changed Time-stamp: <2014-07-19 23:07:49 mtw>
+  Last changed Time-stamp: <2014-07-21 22:25:47 mtw>
 
   Literature:
   Landau, PD and Tsai, S-H and Exler, M (2004) Am. J. Phys. 72:(10) 1294-1302
@@ -135,7 +135,7 @@ initialize_wl(void)
   free(range);
   
   /* get the energy range up to which we will compute true DOS via
-     RNAsubopt, which will be required later for normalization */
+     RNAsubopt */
   gsl_histogram_get_range(s,0,&lo,&hi);
   low = lo;
   gsl_histogram_get_range(s,(wanglandau_opt.norm-1),&lo,&hi);
@@ -144,7 +144,6 @@ initialize_wl(void)
   if(wanglandau_opt.verbose){
     printf("bins 0-%d: %6.3g -- %6.3g wl_opt.erange=%6.3f\n",
 	   (wanglandau_opt.norm-1),low,high,wanglandau_opt.erange);
-    gsl_histogram_fprintf(stderr,h,"%6.3g","%6g");
   }
   
   /* prepare gsl random-number generation */
@@ -452,7 +451,7 @@ scale_dos(gsl_histogram *y)
   bins = gsl_histogram_bins(y);
   /* get value of y[0] */
   GZero = gsl_histogram_get(y,0);
-  for(i=0;i<wanglandau_opt.norm;i++){
+  for(i=0;i<1;i++){
     factor += gsl_histogram_get(s,i);
   }
   /* subtract g[0] [ln(g(Egs))] from each entry to get smaller numbers */

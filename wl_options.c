@@ -1,6 +1,6 @@
 /*
   wl_options.c Command-line parsing for Wang-Landau sampling
-  Last changed Time-stamp: <2014-07-15 22:17:50 mtw>
+  Last changed Time-stamp: <2014-07-21 22:36:40 mtw>
 */
 
 #include <stdio.h>
@@ -54,22 +54,23 @@ process_commandline (int argc, char *argv[])
 static void
 ini_globals(void)
 {
-  wanglandau_opt.INFILE     = NULL;
-  wanglandau_opt.bins       = 100;
-  wanglandau_opt.checksteps = 1e6;
-  wanglandau_opt.ffinal     = 1e-7;
-  wanglandau_opt.flat       = 0.8;
-  wanglandau_opt.res        = 0.5;         /* kcal/mol */
-  wanglandau_opt.seed       = 123456789;
-  wanglandau_opt.seed_given = 0;
-  wanglandau_opt.steplimit  = 1e12;
-  wanglandau_opt.T          = 37.0;
-  wanglandau_opt.erange     = -1;
-  wanglandau_opt.norm       = 1;
-  wanglandau_opt.max        = 99999999999999.;
-  wanglandau_opt.max_given  = 0;
-  wanglandau_opt.verbose    = 0;
-  wanglandau_opt.debug      = 0;
+  wanglandau_opt.INFILE      = NULL;
+  wanglandau_opt.bins        = 100;
+  wanglandau_opt.checksteps  = 1e6;
+  wanglandau_opt.ffinal      = 1e-7;
+  wanglandau_opt.flat        = 0.8;
+  wanglandau_opt.res         = 0.5;         /* kcal/mol */
+  wanglandau_opt.seed        = 123456789;
+  wanglandau_opt.seed_given  = 0;
+  wanglandau_opt.steplimit   = 1e12;
+  wanglandau_opt.T           = 37.0;
+  wanglandau_opt.erange      = -1;
+  wanglandau_opt.norm        = 1;
+  wanglandau_opt.max         = 99999999999999.;
+  wanglandau_opt.max_given   = 0;
+  wanglandau_opt.truedosbins = 0;
+  wanglandau_opt.verbose     = 0;
+  wanglandau_opt.debug       = 0;
 }
 
 /* ==== */

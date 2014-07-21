@@ -39,7 +39,7 @@ const char *gengetopt_args_info_help[] = {
   "  -c, --checksteps=LONGLONG  Number of Wang-Landau steps before histogram is \n                               checked for flatness  (default=`1000000')",
   "      --elow=DOUBLE          Lower limit of sampling window (currently n/a)",
   "      --ehigh=DOUBLE         Upper limit of sampling window (currently n/a)",
-  "      --flat=FLOAT           Flatness criterion for the histogram",
+  "      --flat=FLOAT           Flatness criterion for the histogram  \n                               (default=`0.8')",
   "      --info                 Show settings  (default=off)",
   "  -m, --max=DOUBLE           Upper energy bound for sampling",
   "  -f, --mod=DOUBLE           Final value of Wang-Landau modification factor",
@@ -48,6 +48,7 @@ const char *gengetopt_args_info_help[] = {
   "  -l, --steplimit=LONGLONG   Maximum number of MC steps to perform  \n                               (default=`100000000')",
   "  -S, --seed=LONG            Seed for random number generation",
   "  -T, --Temp=FLOAT           Simulation temperature in Celsius (currently n/a)",
+  "  -t, --truedosbins=INT      Number of bins at the lower range of the energy\n                               spectrum that get overwritten by effective true \n                               DOS values (as computed by\n                               RNAsubopt)",
   "  -v, --verbose              Verbose output  (default=off)",
   "  -d, --debug                Debugging output  (default=off)",
     0
@@ -93,6 +94,7 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->steplimit_given = 0 ;
   args_info->seed_given = 0 ;
   args_info->Temp_given = 0 ;
+  args_info->truedosbins_given = 0 ;
   args_info->verbose_given = 0 ;
   args_info->debug_given = 0 ;
 }
@@ -107,6 +109,7 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->checksteps_orig = NULL;
   args_info->elow_orig = NULL;
   args_info->ehigh_orig = NULL;
+  args_info->flat_arg = 0.8;
   args_info->flat_orig = NULL;
   args_info->info_flag = 0;
   args_info->max_orig = NULL;
@@ -118,6 +121,7 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->steplimit_orig = NULL;
   args_info->seed_orig = NULL;
   args_info->Temp_orig = NULL;
+  args_info->truedosbins_orig = NULL;
   args_info->verbose_flag = 0;
   args_info->debug_flag = 0;
   
@@ -143,8 +147,9 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->steplimit_help = gengetopt_args_info_help[13] ;
   args_info->seed_help = gengetopt_args_info_help[14] ;
   args_info->Temp_help = gengetopt_args_info_help[15] ;
-  args_info->verbose_help = gengetopt_args_info_help[16] ;
-  args_info->debug_help = gengetopt_args_info_help[17] ;
+  args_info->truedosbins_help = gengetopt_args_info_help[16] ;
+  args_info->verbose_help = gengetopt_args_info_help[17] ;
+  args_info->debug_help = gengetopt_args_info_help[18] ;
   
 }
 
@@ -240,6 +245,7 @@ cmdline_parser_release (struct gengetopt_args_info *args_info)
   free_string_field (&(args_info->steplimit_orig));
   free_string_field (&(args_info->seed_orig));
   free_string_field (&(args_info->Temp_orig));
+  free_string_field (&(args_info->truedosbins_orig));
   
   
   for (i = 0; i < args_info->inputs_num; ++i)
@@ -305,6 +311,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "seed", args_info->seed_orig, 0);
   if (args_info->Temp_given)
     write_into_file(outfile, "Temp", args_info->Temp_orig, 0);
+  if (args_info->truedosbins_given)
+    write_into_file(outfile, "truedosbins", args_info->truedosbins_orig, 0);
   if (args_info->verbose_given)
     write_into_file(outfile, "verbose", 0, 0 );
   if (args_info->debug_given)
@@ -589,12 +597,13 @@ cmdline_parser_internal (
         { "steplimit",	1, NULL, 'l' },
         { "seed",	1, NULL, 'S' },
         { "Temp",	1, NULL, 'T' },
+        { "truedosbins",	1, NULL, 't' },
         { "verbose",	0, NULL, 'v' },
         { "debug",	0, NULL, 'd' },
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVb:c:m:f:n:r:l:S:T:vd", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVb:c:m:f:n:r:l:S:T:t:vd", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -718,6 +727,20 @@ cmdline_parser_internal (
             goto failure;
         
           break;
+        case 't':	/* Number of bins at the lower range of the energy
+        spectrum that get overwritten by effective true DOS values (as computed by
+        RNAsubopt).  */
+        
+        
+          if (update_arg( (void *)&(args_info->truedosbins_arg), 
+               &(args_info->truedosbins_orig), &(args_info->truedosbins_given),
+              &(local_args_info.truedosbins_given), optarg, 0, 0, ARG_INT,
+              check_ambiguity, override, 0, 0,
+              "truedosbins", 't',
+              additional_error))
+            goto failure;
+        
+          break;
         case 'v':	/* Verbose output.  */
         
         
@@ -775,7 +798,7 @@ cmdline_parser_internal (
           
             if (update_arg( (void *)&(args_info->flat_arg), 
                  &(args_info->flat_orig), &(args_info->flat_given),
-                &(local_args_info.flat_given), optarg, 0, 0, ARG_FLOAT,
+                &(local_args_info.flat_given), optarg, 0, "0.8", ARG_FLOAT,
                 check_ambiguity, override, 0, 0,
                 "flat", '-',
                 additional_error))

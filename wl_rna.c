@@ -1,6 +1,6 @@
 /*
    wl_rna.c RNA-related routines for Wang-Landau sampling
-   Last changed Time-stamp: <2014-07-03 11:11:55 mtw>
+   Last changed Time-stamp: <2014-07-21 22:41:50 mtw>
 */
 
 #include <stdio.h>
@@ -92,10 +92,10 @@ subopt_of_lowest_bins_RNA(float e)
     exit(EXIT_FAILURE);
   }
 
-  /* be verbose about the lowest-energy bins used for normalization */
+  /* be verbose about the lower energy bins */
   if(wanglandau_opt.verbose){
     fprintf(stderr,
-	    "histogram s (first bins required for normalization)\n");
+	    "histogram s (first bin required for normalization)\n");
     for(i=0;i<wanglandau_opt.norm;i++){
       double value = gsl_histogram_get(s,i);
       fprintf(stderr,"s[%d]: %7g\n",i,value);

@@ -14,6 +14,9 @@ option "resolution" r "Sampling resolution (histogram bin width)" double default
 option "steplimit" l "Maximum number of MC steps to perform" longlong default="100000000" optional
 option "seed" S "Seed for random number generation" long optional
 option "Temp" T "Simulation temperature in Celsius (currently n/a)" float no
+option "truedosbins" t "Number of bins at the lower range of the energy
+spectrum that get overwritten by effective true DOS values (as computed by
+RNAsubopt)" int optional
 option "verbose" v  "Verbose output" flag off
 option "debug" d "Debugging output" flag off
 

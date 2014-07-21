@@ -59,7 +59,7 @@ struct gengetopt_args_info
   double ehigh_arg;	/**< @brief Upper limit of sampling window (currently n/a).  */
   char * ehigh_orig;	/**< @brief Upper limit of sampling window (currently n/a) original value given at command line.  */
   const char *ehigh_help; /**< @brief Upper limit of sampling window (currently n/a) help description.  */
-  float flat_arg;	/**< @brief Flatness criterion for the histogram.  */
+  float flat_arg;	/**< @brief Flatness criterion for the histogram (default='0.8').  */
   char * flat_orig;	/**< @brief Flatness criterion for the histogram original value given at command line.  */
   const char *flat_help; /**< @brief Flatness criterion for the histogram help description.  */
   int info_flag;	/**< @brief Show settings (default=off).  */
@@ -89,6 +89,15 @@ struct gengetopt_args_info
   float Temp_arg;	/**< @brief Simulation temperature in Celsius (currently n/a).  */
   char * Temp_orig;	/**< @brief Simulation temperature in Celsius (currently n/a) original value given at command line.  */
   const char *Temp_help; /**< @brief Simulation temperature in Celsius (currently n/a) help description.  */
+  int truedosbins_arg;	/**< @brief Number of bins at the lower range of the energy
+  spectrum that get overwritten by effective true DOS values (as computed by
+  RNAsubopt).  */
+  char * truedosbins_orig;	/**< @brief Number of bins at the lower range of the energy
+  spectrum that get overwritten by effective true DOS values (as computed by
+  RNAsubopt) original value given at command line.  */
+  const char *truedosbins_help; /**< @brief Number of bins at the lower range of the energy
+  spectrum that get overwritten by effective true DOS values (as computed by
+  RNAsubopt) help description.  */
   int verbose_flag;	/**< @brief Verbose output (default=off).  */
   const char *verbose_help; /**< @brief Verbose output help description.  */
   int debug_flag;	/**< @brief Debugging output (default=off).  */
@@ -109,6 +118,7 @@ struct gengetopt_args_info
   unsigned int steplimit_given ;	/**< @brief Whether steplimit was given.  */
   unsigned int seed_given ;	/**< @brief Whether seed was given.  */
   unsigned int Temp_given ;	/**< @brief Whether Temp was given.  */
+  unsigned int truedosbins_given ;	/**< @brief Whether truedosbins was given.  */
   unsigned int verbose_given ;	/**< @brief Whether verbose was given.  */
   unsigned int debug_given ;	/**< @brief Whether debug was given.  */
 

@@ -1,4 +1,4 @@
-/* Last changed Time-stamp: <2014-07-14 16:24:54 mtw> */
+/* Last changed Time-stamp: <2014-07-21 22:35:46 mtw> */
 
 #ifndef WL_OPTIONS_H
 #define WL_OPTIONS_H
@@ -25,6 +25,7 @@ typedef struct _options {
   int max_given;       /* whether max was given at the command line */
   double res;          /* histogram bin width */
   int res_given;       /* whether res was given at the command line */
+  int truedosbins;     /* # of bins that get overwritten by true DOS */
   int verbose;         /* be verbose */
   int debug;           /* debug mode */
 } options;
