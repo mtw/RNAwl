@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # -*-CPerl-*-
-# Last changed Time-stamp: <2014-07-18 23:31:52 mtw>
+# Last changed Time-stamp: <2014-07-21 15:26:01 mtw>
 #
 # Calculate thermodynamic properties from {sampled|reference} DOS
 #
@@ -38,9 +38,13 @@ use File::Basename;
 #^^^^^^^^^^ Variables ^^^^^^^^^^^#
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^#
 my ($infile,$bn,$dir,$ext,$cmd);
-my $T = 37+273.15;
-my $kT = 0.00198717*4.16*$T;
+my $K0 = 273.15;
+my $T = 37+$K0;
+my $gasconst =  1.98717;  # in [cal/K]
+#my $kT = 0.00198717*4.16*$T;
+my $kT = $T*$gasconst/1000.;
 my $Z = 0.;
+my $l = 0;
 my ($debug,$fromsub,$fromdos) = (0)x3;
 my %inDOS  = ();
 
@@ -64,23 +68,41 @@ unless ($infile =~ /^\// || $infile =~ /^\.\//){$infile = "./".$infile;}
 
 # parse input file (SUBOPT or DOS)
 open(IN, "<", $infile) or die $!;
-if ($fromdos == 1){
+if ($fromdos == 1){ # parse DOS file from RNAwl
   while(<IN>){
     chomp;
     next if ($_ =~ /^#/);
     my $line = $_;
     die "error while parsing reference DOS file\n ---> $line <---\n"
       unless ($line =~ /(\-?\d+\.\d+)\s+(\d+)/);
+    $l++;
     my $energy = $1;
     my $g_E = $2;
     $Z += $g_E * exp(-1*$energy/$kT);
   }
 }
+elsif ($fromsub == 1){ # parse RNAsubopt output
+  while(<IN>){
+    chomp;
+    next if ($_ =~ /^[AUGC]/);
+    my $line = $_;
+    die "error while parsing subopt file\n ---> $line <---\n"
+      unless ($line =~ /[\.\(\)]+\s+(-?\d+\.\d+)/);
+    $l++;
+    my $energy = $1;
+    $Z += exp(-1*$energy/$kT);
+  }
+}
 
+else{ die "Could not parse input file. Please choose -s OR -d exiting
+...\n";}
+
+print "Processed $l lines\n";
+my $foo = -1*$kT*log($Z);
 close(IN);
 print "Z = $Z\n";
-die;
-#print Dumper(\%refDOS);
+print "kTln(Z)= $foo\n";
+
 
 sub usage {
   print <<EOF;
