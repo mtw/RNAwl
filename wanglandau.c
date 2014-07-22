@@ -1,6 +1,6 @@
 /*
   wanglandau.c : main computation routines for Wang-Landau sampling
-  Last changed Time-stamp: <2014-07-22 17:38:25 mtw>
+  Last changed Time-stamp: <2014-07-23 00:58:38 mtw>
 
   Literature:
   Landau, PD and Tsai, S-H and Exler, M (2004) Am. J. Phys. 72:(10) 1294-1302
@@ -194,11 +194,11 @@ initialize_dos_estimate(void)
     /* initialize the first n bins of g with true DOS as computed by
        RNAsubopt */
     if(wanglandau_opt.verbose){
-      fprintf(stderr, "initializing the lowest %d bins of DOS estimate g with true DOS values from subopt\n",
+      fprintf(stderr, "initializing the lowest %d bins of DOS estimate g with true DOS values from subopt:\n",
 	      wanglandau_opt.truedosbins);
     }
     for (i=0;i<wanglandau_opt.truedosbins;i++){
-      g->bin[i]=s->bin[i];   /* get corresponding value from s histogram */ }
+      g->bin[i]=log(s->bin[i]);  /* get corresponding value from s histogram */ }
     for(i=wanglandau_opt.truedosbins;i<n;i++){
       g->bin[i]=g->bin[wanglandau_opt.truedosbins-1];
     }
@@ -206,7 +206,7 @@ initialize_dos_estimate(void)
   else{
     /* initialize g uniformly with 0 */
     if (wanglandau_opt.verbose){
-      fprintf(stderr, "initializing DOS estimate g with 0s\n");
+      fprintf(stderr, "initializing DOS estimate g with zeros:\n");
     }
   }
   if (wanglandau_opt.verbose){
@@ -251,16 +251,22 @@ wl_montecarlo(char *struc)
     exit(EXIT_FAILURE);
   }
   printf("%s\n", wanglandau_opt.sequence);
-  print_str(stdout,pt);printf("(%6.2f) bin:%d\n",(float)e/100,b1);
+  print_str(stderr,pt);
+  printf(" (%6.2f) bin:%d\n",(float)e/100,b1);
   if (wanglandau_opt.verbose){
     fprintf(stderr,"\nStarting MC loop ...\n");
   }
   while (lnf > wanglandau_opt.ffinal) {
     if(wanglandau_opt.debug){
-      fprintf(stderr,"==================\n");
+      fprintf(stderr,"\n==================\n");
       fprintf(stderr,"in while: lnf=%8.6f\n",lnf);
-      print_str(stdout,pt);printf(" (%6.2f) bin:%d\n",(float)e/100,b1);
-      mtw_dump_pt(pt);
+      fprintf(stderr,"steps: %d\n",steps);
+      fprintf(stderr,"current histogram g:\n");
+      gsl_histogram_fprintf(stderr,g,"%6.2f","%30.6f");
+      fprintf(stderr,"\n");
+      print_str(stderr,pt);
+      fprintf(stderr, " (%6.2f) bin:%d\n",(float)e/100,b1);
+      /*  mtw_dump_pt(pt); */
     }
     /* make a random move */
     m = get_random_move_pt(wanglandau_opt.sequence,pt);
@@ -292,17 +298,9 @@ wl_montecarlo(char *struc)
       exit(EXIT_FAILURE);
     }
 
-    if(wanglandau_opt.debug){
-      fprintf(stderr,"steps: %d\n",steps);
-    }
     steps++;  /* # of MC steps performed so far */
 
     /* lookup current values for bins b1 and b2 */
-    if (wanglandau_opt.debug){
-      fprintf(stderr,"current histogram g:\n");
-      gsl_histogram_fprintf(stderr,g,"%6.2f","%30.6f");
-      fprintf(stderr,"\n");
-    }
     g_b1 = gsl_histogram_get(g,b1);
     g_b2 = gsl_histogram_get(g,b2);
       
@@ -313,16 +311,16 @@ wl_montecarlo(char *struc)
     if ((prob == 1 || (rnum <= prob)) ) { /* accept & apply the move */
       apply_move_pt(pt,m);
       if(wanglandau_opt.debug){
-	print_str(stdout,pt);printf(" %6.2f bin:%d [A]\n",
-				    (float)enew/100,b2);
+	print_str(stderr,pt);
+	fprintf(stderr, " %6.2f bin:%d [A]\n", (float)enew/100,b2);
       }
       b1 = b2;
       e = enew;
     }
     else { /* reject the move */
       if(wanglandau_opt.debug){
-	print_str(stdout,pt);printf(" %6.2f bin:%d [R]\n",
-				    (float)enew/100,b2);
+	print_str(stderr,pt);
+	fprintf(stderr, " (%6.2f) bin:%d [R]\n", (float)enew/100,b2);
        }
     }
     
@@ -330,7 +328,13 @@ wl_montecarlo(char *struc)
     if(wanglandau_opt.truedosbins_given && b2 <= wanglandau_opt.truedosbins){
       /* do not update if b2 <= truedosbins, i.e. keep true DOS values
 	 in those bins */
+      if (wanglandau_opt.debug){
+	fprintf(stderr, "NOT UPDATING bin %d\n",b1);
+      }
     } else{
+      if(wanglandau_opt.debug){
+	fprintf(stderr, "UPDATING bin %d\n",b1); 
+      }
       status = gsl_histogram_increment(h,(float)e/100);
       status = gsl_histogram_accumulate(g,(float)e/100,lnf);
     }
@@ -339,13 +343,13 @@ wl_montecarlo(char *struc)
     // stuff that can be skipped 
     /*
       printf ("performed move l:%4d r:%4d\t Energy +/- %6.2f\n",m.left,m.right,(float)emove/100);
-      print_str(stdout,pt);printf(" %6.2f bin:%d\n",(float)enew/100,b2);
+      print_str(stderr,pt);printf(" %6.2f bin:%d\n",(float)enew/100,b2);
       e = vrna_eval_structure_pt(wanglandau_opt.sequence,pt,P);
       if (eval_me == 1 && e != enew){
       fprintf(stderr, "energy evaluation against vrna_eval_structure_pt() mismatch... HAVE %6.2f != %6.2f (SHOULD BE)\n",(float)enew/100, (float)e/100);
       exit(EXIT_FAILURE);
       }
-      print_str(stdout,pt);printf(" %6.2f\n",(float)e/100);
+      print_str(stderr,pt);printf(" %6.2f\n",(float)e/100);
     */
     // end of stuff that can be skipped
 
@@ -355,7 +359,15 @@ wl_montecarlo(char *struc)
     if((steps % crosscheck == 0) && (crosscheck <= crosscheck_limit)){
       fprintf(stderr,"# crosscheck reached %li steps ",crosscheck);
       gcp = gsl_histogram_clone(g);
+      if(wanglandau_opt.verbose){
+	fprintf(stderr,"## gcp before scaling\n");
+	gsl_histogram_fprintf(stderr,gcp,"%6.2f","%30.6f");
+      }
       scale_dos(gcp); /* scale estimated g; make ln(g[0])=0 */
+      if(wanglandau_opt.verbose){
+	fprintf(stderr,"## gcp after scaling\n");
+	gsl_histogram_fprintf(stderr,gcp,"%6.2f","%30.6f");
+      }
       double Z = partition_function(gcp);
       output_dos(gcp,'s');
       fprintf(stderr, "Z=%10.4g\n", Z);
@@ -367,13 +379,13 @@ wl_montecarlo(char *struc)
     if(steps % wanglandau_opt.checksteps == 0) {
       if( histogram_is_flat(h) ) {
 	lnf /= 2;
-	fprintf(stderr,"# histogram is flat  f=%12g steps=%20li\n",lnf,steps);
-	/* fprintf(stderr,"estimated g\n");
-	   gsl_histogram_fprintf(stderr,g,"%6.2f","%20.6f");*/
+	fprintf(stderr,"# steps=%20li | f=%12g | histogram is FLAT\n",
+		steps,lnf);
 	gsl_histogram_reset(h);
       }
       else {
-	fprintf(stderr, "#lnf=%12g steps=%20li not flat\n", lnf, steps);
+	fprintf(stderr, "# steps=%20li | f=%12g | histogram is NOT FLAT\n",
+		steps,lnf);
       }
       output_dos(g,'l');
     }
@@ -486,18 +498,23 @@ scale_dos(gsl_histogram *y)
   bins = gsl_histogram_bins(y);
   /* get value of y[0] */
   GZero = gsl_histogram_get(y,0);
+  /* compute scaling factor just from the very lowest bin for now */
   for(i=0;i<1;i++){
     factor += gsl_histogram_get(s,i);
   }
-  /* subtract g[0] [ln(g(Egs))] from each entry to get smaller numbers */
-  gsl_histogram_shift(y,(-1*GZero));
-  /* add log(factor) [ln(Q)] */
-  gsl_histogram_shift(y,log(factor));
-
+  /* subtract g[0] [ln(g(Egs))] from each entry to get smaller numbers
+     and add scaling factor*/
+  for (i=wanglandau_opt.truedosbins-1;i<n;i++){
+    if(y->bin[i] == 0.){ continue;}
+    else{y->bin[i] += log(factor)-GZero;}
+  }
+  
   /* exponentiate to get effective DOS */
+  /*
   for(i=0;i<n;i++){
     y->bin[i]=exp(y->bin[i]);
   }
+  */
   
   output_dos(y,'s');  
   
