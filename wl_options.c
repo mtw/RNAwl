@@ -1,6 +1,6 @@
 /*
   wl_options.c Command-line parsing for Wang-Landau sampling
-  Last changed Time-stamp: <2014-07-21 22:36:40 mtw>
+  Last changed Time-stamp: <2014-07-22 16:06:33 mtw>
 */
 
 #include <stdio.h>
@@ -54,23 +54,24 @@ process_commandline (int argc, char *argv[])
 static void
 ini_globals(void)
 {
-  wanglandau_opt.INFILE      = NULL;
-  wanglandau_opt.bins        = 100;
-  wanglandau_opt.checksteps  = 1e6;
-  wanglandau_opt.ffinal      = 1e-7;
-  wanglandau_opt.flat        = 0.8;
-  wanglandau_opt.res         = 0.5;         /* kcal/mol */
-  wanglandau_opt.seed        = 123456789;
-  wanglandau_opt.seed_given  = 0;
-  wanglandau_opt.steplimit   = 1e12;
-  wanglandau_opt.T           = 37.0;
-  wanglandau_opt.erange      = -1;
-  wanglandau_opt.norm        = 1;
-  wanglandau_opt.max         = 99999999999999.;
-  wanglandau_opt.max_given   = 0;
-  wanglandau_opt.truedosbins = 0;
-  wanglandau_opt.verbose     = 0;
-  wanglandau_opt.debug       = 0;
+  wanglandau_opt.INFILE            = NULL;
+  wanglandau_opt.bins              = 100;
+  wanglandau_opt.checksteps        = 1e6;
+  wanglandau_opt.ffinal            = 1e-7;
+  wanglandau_opt.flat              = 0.8;
+  wanglandau_opt.res               = 0.5;         /* kcal/mol */
+  wanglandau_opt.seed              = 123456789;
+  wanglandau_opt.seed_given        = 0;
+  wanglandau_opt.steplimit         = 1e12;
+  wanglandau_opt.T                 = 37.0;
+  wanglandau_opt.erange            = -1;
+  wanglandau_opt.norm              = 1;
+  wanglandau_opt.max               = 99999999999999.;
+  wanglandau_opt.max_given         = 0;
+  wanglandau_opt.truedosbins       = 1;
+  wanglandau_opt.truedosbins_given = 0;
+  wanglandau_opt.verbose           = 0;
+  wanglandau_opt.debug             = 0;
 }
 
 /* ==== */
@@ -148,6 +149,14 @@ set_parameters(void)
     }
   }
   
+  if (args_info.truedosbins_given){
+    wanglandau_opt.truedosbins_given = 1;
+    if( (wanglandau_opt.truedosbins = args_info.truedosbins_arg) < 1){
+      fprintf(stderr, "Value of --truedosbins must be >= 1 \n");
+      exit (EXIT_FAILURE);
+    }
+  }
+  
   if (args_info.verbose_given){wanglandau_opt.verbose = 1;}
   if (args_info.debug_given){wanglandau_opt.debug = 1;}
   
@@ -164,18 +173,19 @@ display_settings(void)
 {
   fprintf(stderr, "Settings:\n");
   fprintf(stderr,
-	  "--bins       = %d\n"
-	  "--checksteps = %lu\n"
-	  "--max        = %g\n"
-	  "--ffinal     = %g\n"
-	  "--flat       = %g\n"
-	  "--norm       = %d\n"
-	  "--res        = %g\n"
-	  "--seed       = %lu\n"
-	  "--steplimit  = %lu\n"
-	  "--Temp       = %4.2f\n"
-	  "--verbose    = %i\n"
-	  "--debug      = %i\n",
+	  "--bins        = %d\n"
+	  "--checksteps  = %lu\n"
+	  "--max         = %g\n"
+	  "--mod         = %g\n"
+	  "--flat        = %g\n"
+	  "--norm        = %d\n"
+	  "--res         = %g\n"
+	  "--seed        = %lu\n"
+	  "--steplimit   = %lu\n"
+	  "--Temp        = %4.2f\n"
+	  "--truedosbins = %i\n"
+	  "--verbose     = %i\n"
+	  "--debug       = %i\n",
 	  wanglandau_opt.bins,
 	  wanglandau_opt.checksteps,
 	  wanglandau_opt.max,
@@ -186,6 +196,7 @@ display_settings(void)
 	  wanglandau_opt.seed,
 	  wanglandau_opt.steplimit,
 	  wanglandau_opt.T,
+	  wanglandau_opt.truedosbins,
 	  wanglandau_opt.verbose,
 	  wanglandau_opt.debug);
 }
