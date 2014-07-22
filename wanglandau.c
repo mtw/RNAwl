@@ -1,11 +1,17 @@
 /*
   wanglandau.c : main computation routines for Wang-Landau sampling
-  Last changed Time-stamp: <2014-07-22 17:30:15 mtw>
+  Last changed Time-stamp: <2014-07-22 17:38:25 mtw>
 
   Literature:
   Landau, PD and Tsai, S-H and Exler, M (2004) Am. J. Phys. 72:(10) 1294-1302
   A new approach to Monte Carlo simulations in statistical physics:
   Wang-Landau sampling
+*/
+
+/*
+  TODO
+  - ensure trudosbins are not scales before output
+  - check ln(g) in truedosbins -> must stay constant
 */
 
 #include <stdio.h>
