@@ -39,13 +39,11 @@ x=(E_b-E_a)/2) and y is given as the natural logarithm of the estimated DOS
 in the corresponding bin.
 
 Second, the current values of the (scaled) DOS estimation is output every
-c*10^(1/4) steps, starting with c=10^6 (extension *.sDoS). Typically,
-scaling is performed via the lowest (groundstate) bin, for which the true
-DoS can be computed via suboptimal folding from the ViennaRNA library,
-i.e. ln[gn(E)] = ln[g(E)]-ln[g(Egs)]+ln[Q] where Q is the number of
-structures in the lowest bin. Values are exponentiated before writing them
-in order to get effective values for DOS esimates that can readily be
-compared with a reference.
+c*10^(1/4) steps, starting with c=10^6 (extension *.sDoS). Scaling is
+performed via the lowest (groundstate) bin, for which the true DoS can be
+computed via suboptimal folding from the ViennaRNA library, i.e. ln[gn(E)]
+= ln[g(E)]-ln[g(Egs)]+ln[Q] where Q is the number of structures in the
+lowest bin. 
 
 ## Evaluation of results
 
@@ -67,6 +65,16 @@ option. The sampling range will then be computed as \<resolution\> \*
 \<bins\>, i.e. the upper bound of the sampling range is then computed as
 \<mfe\> + \<resolution\> \* \<bins\>.
 
+## Notes 
+
+This is experimental software which has been implemented for reference
+purposes only. Read the source code to learn what it's all about. Please
+report bugs to <michael@wolfinger.eu>
+
+## Authors
+
+Michael Thomas Wolfinger <michael@wolfinger.eu>
+
 ## References
 
   [1]: F. Wang, D.P. Landau "Efficient, Multiple-Range RandomWalk Algorithm
@@ -79,3 +87,4 @@ Am. J. Phys. 72 10, 2004
   [3]: R. Lorenz, S.H. Bernhart, C. Höner zu Siederdissen, H. Tafer,
 Ch. Flamm, P.F. Stadler, I.L. Hofacker "ViennaRNA Package 2.0"
 Alg. Mol. Biol., 6:1 26, 2011
+
