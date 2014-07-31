@@ -20,6 +20,7 @@ AC_CANONICAL_HOST
 
 # check for custom libs
 PKG_CHECK_MODULES(ViennaRNA, RNAlib2 >= 2.2)
+PKG_CHECK_MODULES(GSL, gsl >= 1.1)
 
 # Checks for libraries.
 # FIXME: Replace `main' with a function in `-lm':
