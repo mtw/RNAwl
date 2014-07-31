@@ -1,6 +1,6 @@
 /*
   wanglandau.c : main computation routines for Wang-Landau sampling
-  Last changed Time-stamp: <2014-07-23 00:58:38 mtw>
+  Last changed Time-stamp: <2014-07-31 22:42:29 mtw>
 
   Literature:
   Landau, PD and Tsai, S-H and Exler, M (2004) Am. J. Phys. 72:(10) 1294-1302
@@ -19,7 +19,7 @@
 #include <string.h>
 #include <signal.h>
 #include <math.h>
-#include <time.h>
+
 #include <sys/time.h>
 #include <assert.h>
 #include "globals.h"
@@ -27,6 +27,24 @@
 #include "wl_rna.h"
 #include "moves.h"
 #include <gsl/gsl_rng.h>
+#ifdef __MACH__
+#include <mach/mach_time.h>
+#define CLOCK_REALTIME 0
+#define CLOCK_MONOTONIC 0
+int clock_gettime(int clk_id, struct timespec *t){
+    mach_timebase_info_data_t timebase;
+    mach_timebase_info(&timebase);
+    uint64_t time;
+    time = mach_absolute_time();
+    double nseconds = ((double)time * (double)timebase.numer)/((double)timebase.denom);
+    double seconds = ((double)time * (double)timebase.numer)/((double)timebase.denom * 1e9);
+    t->tv_sec = seconds;
+    t->tv_nsec = nseconds;
+    return 0;
+}
+#else
+#include <time.h>
+#endif
 
 #define MIN2(A, B)  ((A) < (B) ? (A) : (B))
 #define MAX2(A, B)  ((A) > (B) ? (A) : (B))
