@@ -8,7 +8,7 @@ AC_INIT([RNAwl],
 
 # for automake
 AC_CONFIG_AUX_DIR(config)
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([foreign])
 
 AC_CONFIG_SRCDIR([moves.h])
 AC_CONFIG_HEADERS([config.h])
