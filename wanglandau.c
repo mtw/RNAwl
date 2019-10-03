@@ -253,11 +253,15 @@ wl_montecarlo(char *struc)
   if (wanglandau_opt.verbose){
     printf("[[wl_montecarlo()]]\n");
   }
-  pt = vrna_pt_get(struc);
+  pt = vrna_ptable(struc);
   //mtw_dump_pt(pt);
   //char *str = vrna_pt_to_db(pt);
   //printf(">%s<\n",str);
-  e = vrna_eval_structure_pt(wanglandau_opt.sequence,pt,P);
+  vrna_md_t md;
+  vrna_md_set_default(&md);
+  md.temperature = wanglandau_opt.T;
+  vrna_fold_compound_t *vc = vrna_fold_compound(wanglandau_opt.sequence,&md,VRNA_OPTION_EVAL_ONLY);
+  e = vrna_eval_structure_pt(vc,pt);
   
   /* determine bin where the start structure goes */
   status = gsl_histogram_find(g,(float)e/100,&b1);
@@ -289,7 +293,7 @@ wl_montecarlo(char *struc)
     /* make a random move */
     m = get_random_move_pt(wanglandau_opt.sequence,pt);
     /* compute energy difference for this move */
-    emove = vrna_eval_move_pt(pt,s0,s1,m.left,m.right,P);
+    emove = vrna_eval_move_pt(vc,pt,m.left,m.right);
     /* evaluate energy of the new structure */
     enew = e + emove;
     if(wanglandau_opt.debug){
@@ -416,6 +420,8 @@ wl_montecarlo(char *struc)
     }
 
   } /* end while */
+
+  vrna_fold_compound_free(vc);
   free(pt); 
   return;
 }
@@ -605,13 +611,9 @@ wanglandau_free_memory(void)
   gsl_histogram_free(h);
   gsl_histogram_free(g);
   gsl_rng_free(r);
-  free(pt);
-  free(s0);
-  free(s1);
   free(wanglandau_opt.sequence);
   free(wanglandau_opt.structure);
   free(wanglandau_opt.basename);
-  free(P);
   free(out_prefix);
   dealloc_gengetopt();
   return;

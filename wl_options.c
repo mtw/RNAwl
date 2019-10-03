@@ -13,7 +13,7 @@
 
 
 static void ini_globals(void);
-static void set_parameters(void);
+static void set_wl_parameters(void);
 static void display_settings(void);
 static void to_basename(char *arg);
 static void parse_infile(FILE *fp);
@@ -30,7 +30,7 @@ process_commandline (int argc, char *argv[])
     fprintf(stderr, "error while parsing command-line options\n");
     exit(EXIT_FAILURE);
   }
-  set_parameters();
+  set_wl_parameters();
  
   if (args_info.inputs_num){
     char *infile =NULL;
@@ -39,9 +39,11 @@ process_commandline (int argc, char *argv[])
     wanglandau_opt.INFILE = fopen(infile, "r");
     free(infile);
   }
-  else
+  else{
     wanglandau_opt.INFILE = stdin;
-  
+    //TODO: create a result file name command line parameter.
+    wanglandau_opt.basename = strdup("wang_landau_results");
+  }
   parse_infile(wanglandau_opt.INFILE);
   
     if (args_info.inputs_num){
@@ -77,7 +79,7 @@ ini_globals(void)
 /* ==== */
 /* process command line options */
 static void
-set_parameters(void)
+set_wl_parameters(void)
 {
   if (args_info.Temp_given){
     if( (wanglandau_opt.T = args_info.Temp_arg) < -273.15 ){

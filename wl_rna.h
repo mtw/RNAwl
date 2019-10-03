@@ -14,9 +14,6 @@
 #include <ViennaRNA/move_set.h>
 #include <ViennaRNA/subopt.h>
 
-/* ViennaRNA-related */
-paramT *P;
-short int *pt,*s0,*s1;
 
 /* RNA-related */
 void initialize_RNA(const char *);

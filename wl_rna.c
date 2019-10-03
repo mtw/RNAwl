@@ -21,17 +21,14 @@ static void subopt_of_lowest_bins_RNA(float);
 void
 initialize_RNA (const char *seq)
 {
-  model_detailsT md;
-  vrna_fold_compound *vc = NULL;
-  set_model_details(&md); /* use current global model */
-  P = vrna_get_energy_contributions(md);
-  vc = vrna_get_fold_compound(seq, &md,VRNA_OPTION_MFE);
-  s0 = vrna_seq_encode_simple(wanglandau_opt.sequence,&(P->model_details));
-  s1 = vrna_seq_encode(wanglandau_opt.sequence,&(P->model_details));
+  vrna_md_t md;
+  vrna_md_set_default(&md);
+  md.temperature = wanglandau_opt.T;
+  vrna_fold_compound_t *vc = vrna_fold_compound(seq, &md,VRNA_OPTION_MFE);
 
   /* compute mfe */
-  mfe = vrna_fold(vc,NULL);
-  vrna_free_fold_compound(vc);
+  mfe = vrna_mfe(vc,NULL);
+  vrna_fold_compound_free(vc);
   if(wanglandau_opt.verbose){
     printf ("[[initialize_RNA()]]\nmfe = %6.2f\n",mfe);
   }
